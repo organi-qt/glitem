@@ -1,0 +1,6 @@
+*~
+*.cache
+Makefile
+*.user
+*.o
+qml

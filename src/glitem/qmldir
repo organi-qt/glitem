@@ -1,0 +1,3 @@
+module GLItem
+plugin declarative_glitemqmlplugin
+classname GLItemQmlPlugin
