@@ -1,5 +1,6 @@
 #include "glshader.h"
 #include "glnode.h"
+#include <QOpenGLContext>
 
 GLShader::GLShader()
     : m_last_node(0),
@@ -10,8 +11,13 @@ GLShader::GLShader()
 
 void GLShader::initialize()
 {
+    QOpenGLContext *context = QOpenGLContext::currentContext();
+
     m_program.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShader());
-    m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShader());
+    QString frag = fragmentShader();
+    if (context->isOpenGLES())
+        frag.prepend("default precision mediump;\n");
+    m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, frag);
 
     char const *const *attr = attributeNames();
     for (int i = 0; attr[i]; ++i) {
