@@ -11,13 +11,8 @@ GLShader::GLShader()
 
 void GLShader::initialize()
 {
-    QOpenGLContext *context = QOpenGLContext::currentContext();
-
     m_program.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShader());
-    QString frag = fragmentShader();
-    if (context->isOpenGLES())
-        frag.prepend("default precision mediump;\n");
-    m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, frag);
+    m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShader());
 
     char const *const *attr = attributeNames();
     for (int i = 0; attr[i]; ++i) {
@@ -197,6 +192,9 @@ const char *GLPhongShader::vertexShader() const
 const char *GLPhongShader::fragmentShader() const
 {
     return
+    "#ifdef GL_ES\n"
+    "precision mediump float;\n"
+    "#endif\n"
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
     "uniform lowp vec3 Ks;\n"
@@ -365,6 +363,9 @@ const char *GLPhongDiffuseTextureShader::vertexShader() const {
 
 const char *GLPhongDiffuseTextureShader::fragmentShader() const {
     return
+    "#ifdef GL_ES\n"
+    "precision mediump float;\n"
+    "#endif\n"
     "uniform sampler2D diffuse_texture;\n"
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
