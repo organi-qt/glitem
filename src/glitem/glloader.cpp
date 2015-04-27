@@ -168,6 +168,10 @@ GLRenderNode *GLLoader::convert(aiMesh *mesh)
 
 GLTransformNode *GLLoader::convert(aiNode *node)
 {
+    // meaningless node for render
+    if (node->mNumChildren == 0 && node->mNumMeshes == 0)
+        return NULL;
+
     GLTransformNode *root =
             new GLTransformNode(node->mName.C_Str(), QMatrix4x4(node->mTransformation[0]));
 
@@ -179,7 +183,8 @@ GLTransformNode *GLLoader::convert(aiNode *node)
 
     for (uint i = 0; i < node->mNumChildren; i++) {
         GLTransformNode *tnode = convert(node->mChildren[i]);
-        root->addChild(tnode);
+        if (tnode)
+            root->addChild(tnode);
     }
 
     return root;
