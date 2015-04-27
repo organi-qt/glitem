@@ -19,27 +19,29 @@ bool GLLoader::load(const QString &path, const QString &file)
         qDebug() << "load file " << file << " fail: " << m_importer.GetErrorString();
         return false;
     }
-/*
+
     if (m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         qDebug() << "file " << file << " with incomplete scene";
         m_scene = NULL;
         m_importer.FreeScene();
         return false;
     }
-
+/*
     if (m_scene->HasCameras())
         for (uint i = 0; i < m_scene->mNumCameras; i++)
             printCamera(m_scene->mCameras[i]);
-
+//*/
+/*
     if (m_scene->HasLights())
         for (uint i = 0; i < m_scene->mNumLights; i++)
             printLight(m_scene->mLights[i]);
-
+//*/
+/*
     if (m_scene->HasMaterials())
         for (uint i = 0; i < m_scene->mNumMaterials; i++)
             printMaterial(m_scene->mMaterials[i]);
-*/
-    printNode(m_scene->mRootNode, "  ");
+//*/
+    //printNode(m_scene->mRootNode, "  ");
     m_path = path;
     return true;
 }

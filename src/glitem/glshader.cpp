@@ -2,6 +2,11 @@
 #include "glnode.h"
 #include <QOpenGLContext>
 
+#define GLES_FRAG_SHADER_HEADER \
+    "#ifdef GL_ES\n" \
+    "precision mediump float;\n" \
+    "#endif\n"
+
 GLShader::GLShader()
     : m_last_node(0),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
@@ -192,9 +197,7 @@ const char *GLPhongShader::vertexShader() const
 const char *GLPhongShader::fragmentShader() const
 {
     return
-    "#ifdef GL_ES\n"
-    "precision mediump float;\n"
-    "#endif\n"
+    GLES_FRAG_SHADER_HEADER
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
     "uniform lowp vec3 Ks;\n"
@@ -363,9 +366,7 @@ const char *GLPhongDiffuseTextureShader::vertexShader() const {
 
 const char *GLPhongDiffuseTextureShader::fragmentShader() const {
     return
-    "#ifdef GL_ES\n"
-    "precision mediump float;\n"
-    "#endif\n"
+    GLES_FRAG_SHADER_HEADER
     "uniform sampler2D diffuse_texture;\n"
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
