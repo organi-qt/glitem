@@ -14,16 +14,14 @@ class GLItem : public QQuickItem
     Q_PROPERTY(qreal glopacity READ glopacity WRITE setGLOpacity NOTIFY glopacityChanged)
     Q_PROPERTY(QQmlListProperty<GLTransform> gltransform READ gltransform DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
-    Q_PROPERTY(QVector3D light_pos READ lightPos WRITE setLightPos NOTIFY lightPosChanged)
-    Q_PROPERTY(QVector3D light_amb READ lightAmb WRITE setLightAmb NOTIFY lightAmbChanged)
-    Q_PROPERTY(QVector3D light_dif READ lightDif WRITE setLightDif NOTIFY lightDifChanged)
-    Q_PROPERTY(QVector3D light_spec READ lightSpec WRITE setLightSpec NOTIFY lightSpecChanged)
+    Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
     Q_CLASSINFO("DefaultProperty", "glnode")
 public:
     GLItem();
 
     QQmlListProperty<GLTransform> gltransform();
     QQmlListProperty<GLAnimateNode> glnode();
+    QQmlListProperty<GLLight> gllight();
 
     QString model() { return m_model; }
     void setModel(const QString &value);
@@ -31,24 +29,8 @@ public:
     qreal glopacity() { return m_glopacity; }
     void setGLOpacity(qreal value);
 
-    QVector3D lightPos() { return m_light_pos; }
-    void setLightPos(const QVector3D &value);
-
-    QVector3D lightAmb() { return m_light_amb; }
-    void setLightAmb(const QVector3D &value);
-
-    QVector3D lightDif() { return m_light_dif; }
-    void setLightDif(const QVector3D &value);
-
-    QVector3D lightSpec() { return m_light_spec; }
-    void setLightSpec(const QVector3D &value);
-
 signals:
     void glopacityChanged();
-    void lightPosChanged();
-    void lightAmbChanged();
-    void lightDifChanged();
-    void lightSpecChanged();
 
 public slots:
     void sync();
@@ -64,10 +46,6 @@ private:
     QString m_model;
     GLTransformNode *m_root;
     qreal m_glopacity;
-    QVector3D m_light_pos;
-    QVector3D m_light_amb;
-    QVector3D m_light_dif;
-    QVector3D m_light_spec;
 
     static int gltransform_count(QQmlListProperty<GLTransform> *list);
     static void gltransform_append(QQmlListProperty<GLTransform> *list, GLTransform *);
@@ -80,6 +58,12 @@ private:
     static GLAnimateNode *glnode_at(QQmlListProperty<GLAnimateNode> *list, int);
     static void glnode_clear(QQmlListProperty<GLAnimateNode> *list);
     QList<GLAnimateNode *> m_glnodes;
+
+    static int gllight_count(QQmlListProperty<GLLight> *list);
+    static void gllight_append(QQmlListProperty<GLLight> *list, GLLight *);
+    static GLLight *gllight_at(QQmlListProperty<GLLight> *list, int);
+    static void gllight_clear(QQmlListProperty<GLLight> *list);
+    QList<GLLight *> m_gllights;
 
     bool bindAnimateNode(GLTransformNode *, GLAnimateNode *);
     void calcModelviewMatrix(GLTransformNode *, const QMatrix4x4 &);

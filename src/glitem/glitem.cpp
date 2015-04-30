@@ -3,9 +3,7 @@
 #include "glitem.h"
 
 GLItem::GLItem()
-    : m_render(0), m_root(0), m_glopacity(1),
-      m_light_pos(100, 100, 100), m_light_amb(1, 1, 1),
-      m_light_dif(1, 1, 1), m_light_spec(1, 1, 1)
+    : m_render(0), m_root(0), m_glopacity(1)
 {
 
 }
@@ -31,11 +29,10 @@ void GLItem::sync()
         m_gltransforms[i]->applyTo(&modelview);
     calcModelviewMatrix(m_root, modelview);
 
-    m_render->setOpacity(m_glopacity);
-    m_render->setLightPos(m_light_pos);
-    m_render->setLightAmb(m_light_amb);
-    m_render->setLightDif(m_light_dif);
-    m_render->setLightSpec(m_light_spec);
+    m_render->state()->setOpacity(m_glopacity);
+
+    for (int i = 0; i < m_gllights.size(); i++)
+        m_gllights[i]->updateState(m_render->state());
 }
 
 void GLItem::cleanup()
@@ -143,16 +140,16 @@ int GLItem::glnode_count(QQmlListProperty<GLAnimateNode> *list)
 void GLItem::glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *item)
 {
     GLItem *object = qobject_cast<GLItem *>(list->object);
-    QList<GLAnimateNode *> *ptrans;
+    QList<GLAnimateNode *> *pnodes;
     if (object) {
-        ptrans = &object->m_glnodes;
-        if (!ptrans->contains(item)) {
+        pnodes = &object->m_glnodes;
+        if (!pnodes->contains(item)) {
             if (!object->bindAnimateNode(object->m_root, item)) {
                 qWarning() << "no node find in model named: " << item->name();
                 return;
             }
 
-            ptrans->append(item);
+            pnodes->append(item);
             QObject::connect(item, SIGNAL(transformChanged()),
                              object, SLOT(updateWindow()));
         }
@@ -219,40 +216,60 @@ void GLItem::setGLOpacity(qreal value)
     }
 }
 
-void GLItem::setLightPos(const QVector3D &value)
+QQmlListProperty<GLLight> GLItem::gllight()
 {
-    if (m_light_pos != value) {
-        m_light_pos = value;
-        emit lightPosChanged();
-        updateWindow();
+    return QQmlListProperty<GLLight>(this, 0, gllight_append, gllight_count, gllight_at, gllight_clear);
+}
+
+int GLItem::gllight_count(QQmlListProperty<GLLight> *list)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_gllights.count();
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for light count.";
+        return 0;
     }
 }
 
-void GLItem::setLightAmb(const QVector3D &value)
+void GLItem::gllight_append(QQmlListProperty<GLLight> *list, GLLight *item)
 {
-    if (m_light_amb != value) {
-        m_light_amb = value;
-        emit lightAmbChanged();
-        updateWindow();
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    QList<GLLight *> *plights;
+    if (object) {
+        plights = &object->m_gllights;
+
+        if (!plights->contains(item)) {
+            plights->append(item);
+            QObject::connect(item, SIGNAL(lightChanged()),
+                             object, SLOT(updateWindow()));
+        }
     }
+    else
+        qWarning()<<"Warning: could not find GLItem to add light to.";
 }
 
-void GLItem::setLightDif(const QVector3D &value)
+GLLight *GLItem::gllight_at(QQmlListProperty<GLLight> *list, int idx)
 {
-    if (m_light_dif != value) {
-        m_light_dif = value;
-        emit lightDifChanged();
-        updateWindow();
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_gllights.at(idx);
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for lights";
+        return 0;
     }
+    return 0;
 }
 
-void GLItem::setLightSpec(const QVector3D &value)
+void GLItem::gllight_clear(QQmlListProperty<GLLight> *list)
 {
-    if (m_light_spec != value) {
-        m_light_spec = value;
-        emit lightSpecChanged();
-        updateWindow();
-    }
-}
 
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        object->m_gllights.clear();
+        object->updateWindow();
+    }
+    else
+        qWarning()<<"Warning: could not find GLItem to clear of lights";
+}
 

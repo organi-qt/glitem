@@ -10,4 +10,5 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
     qmlRegisterType<GLRotation>("GLItem", 1, 0, "GLRotation");
     qmlRegisterType<GLAnimateNode>("GLItem", 1, 0, "GLAnimateNode");
     qmlRegisterType<GLTransform>();
+    qmlRegisterType<GLLight>("GLItem", 1, 0, "GLLight");
 }

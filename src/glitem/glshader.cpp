@@ -170,10 +170,17 @@ void GLShader::renderNode(GLTransformNode *node)
         renderNode(node->transformChildAtIndex(i));
 }
 
-GLPhongShader::GLPhongShader()
-    : GLShader()
-{
+const int GLPhongShader::m_max_lights;
 
+GLPhongShader::GLPhongShader(const QList<Light> &lights)
+    : GLShader(), m_lights(lights),
+      m_num_lights(qMin(m_max_lights, m_lights.size()))
+{
+    Q_ASSERT(m_lights.size() > 0);
+}
+
+GLPhongShader::~GLPhongShader()
+{
 }
 
 const char *GLPhongShader::vertexShader() const
@@ -194,33 +201,62 @@ const char *GLPhongShader::vertexShader() const
     "}";
 }
 
-const char *GLPhongShader::fragmentShader() const
+const QString &GLPhongShader::fragmentShader() const
 {
-    return
+    QString lights_declare;
+    QString lights_calc;
+    for (int i = 0; i < m_num_lights; i++) {
+        lights_declare += QString(
+            "uniform lowp vec3 light%1_pos;\n"
+            "uniform lowp vec3 light%1_amb;\n"
+            "uniform lowp vec3 light%1_dif;\n"
+            "uniform lowp vec3 light%1_spec;\n"
+        ).arg(i);
+
+        switch (m_lights[i].type) {
+        case Light::POINT:
+            lights_calc += QString(
+                "    L = normalize(light%1_pos - eyePosition);\n"
+            ).arg(i);
+            break;
+        case Light::SUN:
+            lights_calc += QString(
+                "    L = normalize(-light%1_pos);\n"
+            ).arg(i);
+            break;
+        }
+
+        lights_calc += QString(
+            "    Rd = max(0.0, dot(L, N));\n"
+            "    color += Rd * Kd * light%1_dif;\n"
+            "    R = reflect(-L, N);\n"
+            "    Rs = pow(max(0.0, dot(V, R)), alpha);\n"
+            "    color += Rs * Ks * light%1_spec;\n"
+            "    color += Ka * light%1_amb;\n"
+        ).arg(i);
+    }
+
+    static const QString shader =
     GLES_FRAG_SHADER_HEADER
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
     "uniform lowp vec3 Ks;\n"
     "uniform lowp float alpha;\n"
-    "uniform lowp vec3 light_pos;\n"
-    "uniform lowp vec3 light_amb;\n"
-    "uniform lowp vec3 light_dif;\n"
-    "uniform lowp vec3 light_spec;\n"
+    + lights_declare +
     "uniform lowp float opacity;\n"
     "varying vec3 normal;\n"
     "varying vec3 eyePosition;\n"
     "void main() {\n"
     "    vec3 N = normalize(normal);\n"
-    "    vec3 L = normalize(light_pos - eyePosition);\n"
     "    vec3 V = normalize(-eyePosition);\n"
-    "    float Rd = max(0.0, dot(L, N));\n"
-    "    vec3 diffuse = Rd * Kd * light_dif;\n"
-    "    vec3 R = reflect(-L, N);\n"
-    "    float Rs = pow(max(0.0, dot(V, R)), alpha);\n"
-    "    vec3 specular = Rs * Ks * light_spec;\n"
-    "    vec3 ambient = Ka * light_amb;\n"
-    "    gl_FragColor = vec4(ambient + diffuse + specular, 1.0) * opacity;\n"
+    "    vec3 L, R;\n"
+    "    float Rd, Rs;\n"
+    "    vec3 color = vec3(0.0);\n"
+    + lights_calc +
+    "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
     "}";
+
+    return shader;
 }
 
 char const *const *GLPhongShader::attributeNames() const {
@@ -244,24 +280,26 @@ void GLPhongShader::resolveUniforms() {
         qWarning("GLPhongShader does not implement 'uniform highp mat3 normal_matrix;' in its shader");
     }
 
-    m_id_light_pos = program()->uniformLocation("light_pos");
-    if (m_id_light_pos < 0) {
-        qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_pos' in its shader");
-    }
+    for (int i = 0; i < m_num_lights; i++) {
+        m_id_light_pos[i] = program()->uniformLocation(QString("light%1_pos").arg(i));
+        if (m_id_light_pos[i] < 0) {
+            qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_pos' in its shader");
+        }
 
-    m_id_light_amb = program()->uniformLocation("light_amb");
-    if (m_id_light_amb < 0) {
-        qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_amb' in its shader");
-    }
+        m_id_light_amb[i] = program()->uniformLocation(QString("light%1_amb").arg(i));
+        if (m_id_light_amb[i] < 0) {
+            qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_amb' in its shader");
+        }
 
-    m_id_light_dif = program()->uniformLocation("light_dif");
-    if (m_id_light_dif < 0) {
-        qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_dif' in its shader");
-    }
+        m_id_light_dif[i] = program()->uniformLocation(QString("light%1_dif").arg(i));
+        if (m_id_light_dif[i] < 0) {
+            qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_dif' in its shader");
+        }
 
-    m_id_light_spec = program()->uniformLocation("light_spec");
-    if (m_id_light_spec < 0) {
-        qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_spec' in its shader");
+        m_id_light_spec[i] = program()->uniformLocation(QString("light%1_spec").arg(i));
+        if (m_id_light_spec[i] < 0) {
+            qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_spec' in its shader");
+        }
     }
 
     m_id_opacity = program()->uniformLocation("opacity");
@@ -317,18 +355,24 @@ void GLPhongShader::updateRenderState(RenderState *s)
         program()->setUniformValue(m_id_projection_matrix, s->projection_matrix);
     if (s->opacity_dirty)
         program()->setUniformValue(m_id_opacity, s->opacity);
-    if (s->light_pos_dirty)
-        program()->setUniformValue(m_id_light_pos, s->light_pos);
-    if (s->light_amb_dirty)
-        program()->setUniformValue(m_id_light_amb, s->light_amb);
-    if (s->light_dif_dirty)
-        program()->setUniformValue(m_id_light_dif, s->light_dif);
-    if (s->light_spec_dirty)
-        program()->setUniformValue(m_id_light_spec, s->light_spec);
+
+    Q_ASSERT(m_num_lights <= s->lights.size());
+    for (int i = 0; i < m_num_lights; i++) {
+        if (s->lights[i].pos_dirty) {
+            program()->setUniformValue(m_id_light_pos[i], s->lights[i].light.pos);
+            qDebug() << "light pos=" << s->lights[i].light.pos;
+        }
+        if (s->lights[i].amb_dirty)
+            program()->setUniformValue(m_id_light_amb[i], s->lights[i].light.amb);
+        if (s->lights[i].dif_dirty)
+            program()->setUniformValue(m_id_light_dif[i], s->lights[i].light.dif);
+        if (s->lights[i].spec_dirty)
+            program()->setUniformValue(m_id_light_spec[i], s->lights[i].light.spec);
+    }
 }
 
-GLPhongDiffuseTextureShader::GLPhongDiffuseTextureShader()
-    : GLPhongShader()
+GLPhongDiffuseTextureShader::GLPhongDiffuseTextureShader(const QList<Light> &lights)
+    : GLPhongShader(lights)
 {
 
 }
@@ -364,35 +408,64 @@ const char *GLPhongDiffuseTextureShader::vertexShader() const {
     "}";
 }
 
-const char *GLPhongDiffuseTextureShader::fragmentShader() const {
-    return
+const QString &GLPhongDiffuseTextureShader::fragmentShader() const {
+    QString lights_declare;
+    QString lights_calc;
+    for (int i = 0; i < m_num_lights; i++) {
+        lights_declare += QString(
+            "uniform lowp vec3 light%1_pos;\n"
+            "uniform lowp vec3 light%1_amb;\n"
+            "uniform lowp vec3 light%1_dif;\n"
+            "uniform lowp vec3 light%1_spec;\n"
+        ).arg(i);
+
+        switch (m_lights[i].type) {
+        case Light::POINT:
+            lights_calc += QString(
+                "    L = normalize(light%1_pos - eyePosition);\n"
+            ).arg(i);
+            break;
+        case Light::SUN:
+            lights_calc += QString(
+                "    L = normalize(-light%1_pos);\n"
+            ).arg(i);
+            break;
+        }
+
+        lights_calc += QString(
+            "    Rd = max(0.0, dot(L, N));\n"
+            "    color += Rd * Kd * Td * light%1_dif;\n"
+            "    R = reflect(-L, N);\n"
+            "    Rs = pow(max(0.0, dot(V, R)), alpha);\n"
+            "    color += Rs * Ks * light%1_spec;\n"
+            "    color += Ka * light%1_amb;\n"
+        ).arg(i);
+    }
+
+    static const QString shader =
     GLES_FRAG_SHADER_HEADER
     "uniform sampler2D diffuse_texture;\n"
     "uniform lowp vec3 Ka;\n"
     "uniform lowp vec3 Kd;\n"
     "uniform lowp vec3 Ks;\n"
     "uniform lowp float alpha;\n"
-    "uniform lowp vec3 light_pos;\n"
-    "uniform lowp vec3 light_amb;\n"
-    "uniform lowp vec3 light_dif;\n"
-    "uniform lowp vec3 light_spec;\n"
+    + lights_declare +
     "uniform lowp float opacity;\n"
     "varying vec3 normal;\n"
-    "varying vec2 texcoord;\n"
     "varying vec3 eyePosition;\n"
+    "varying vec2 texcoord;\n"
     "void main() {\n"
     "    vec3 N = normalize(normal);\n"
-    "    vec3 L = normalize(light_pos - eyePosition);\n"
     "    vec3 V = normalize(-eyePosition);\n"
-    "    float Rd = max(0.0, dot(L, N));\n"
+    "    vec3 L, R;\n"
+    "    float Rd, Rs;\n"
+    "    vec3 color = vec3(0.0);\n"
     "    vec3 Td = texture2D(diffuse_texture, texcoord).rgb;"
-    "    vec3 diffuse = Rd * Kd * Td * light_dif;\n"
-    "    vec3 R = reflect(-L, N);\n"
-    "    float Rs = pow(max(0.0, dot(V, R)), alpha);\n"
-    "    vec3 specular = Rs * Ks * light_spec;\n"
-    "    vec3 ambient = Ka * light_amb;\n"
-    "    gl_FragColor = vec4(diffuse + specular + ambient, 1.0) * opacity;\n"
+    + lights_calc +
+    "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
     "}";
+
+    return shader;
 }
 
 char const *const *GLPhongDiffuseTextureShader::attributeNames() const {

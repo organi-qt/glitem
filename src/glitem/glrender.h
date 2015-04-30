@@ -16,20 +16,15 @@ public:
     GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loader);
     ~GLRender();
 
+    RenderState *state() { return &m_state; }
     GLTransformNode *root() { return m_root; }
-    void setOpacity(float value) { m_state.setOpacity(value); }
-    void setLightPos(const QVector3D &value) { m_state.setLightPos(value); }
-    void setLightAmb(const QVector3D &value) { m_state.setLightAmb(value); }
-    void setLightDif(const QVector3D &value) { m_state.setLightDif(value); }
-    void setLightSpec(const QVector3D &value) { m_state.setLightSpec(value); }
-    void setProjectionMatrix(const QMatrix4x4 &value) { m_state.setProjectionMatrix(value); }
 
 public slots:
     void render();
 
 private:
     GLTransformNode *m_root;
-    GLShader::RenderState m_state;
+    RenderState m_state;
     QRect m_viewport;
     GLShader *m_shaders[GLShader::NUM_SHADERS];
     QMap<QString, QOpenGLTexture *> m_textures;

@@ -53,6 +53,8 @@ GLTransformNode *GLLoader::convert()
 
     GLTransformNode *root = convert(m_scene->mRootNode);
 
+    convertLights();
+
     m_scene = NULL;
     m_importer.FreeScene();
     return root;
@@ -188,6 +190,75 @@ GLTransformNode *GLLoader::convert(aiNode *node)
     }
 
     return root;
+}
+
+void GLLoader::assign(QVector3D &qc, const aiColor3D &ac)
+{
+    qc.setX(ac.r);
+    qc.setY(ac.g);
+    qc.setZ(ac.b);
+}
+
+void GLLoader::assign(QVector3D &qv, const aiVector3D &av)
+{
+    qv.setX(av.x);
+    qv.setY(av.y);
+    qv.setZ(av.z);
+}
+
+void GLLoader::convertLights()
+{
+    m_lights.clear();
+
+    if (m_scene->HasLights()) {
+        for (uint i = 0; i < m_scene->mNumLights; i++) {
+            Light light;
+            aiLight *srcLight = m_scene->mLights[i];
+            aiMatrix4x4 trans;
+            aiNode *node = m_scene->mRootNode->FindNode(srcLight->mName);
+            if (node) {
+                aiNode *pn = node;
+                do {
+                    trans = pn->mTransformation * trans;
+                    pn = pn->mParent;
+                } while (pn);
+            }
+            else
+                qWarning() << "glloader: no node found for light: "
+                           << srcLight->mName.C_Str();
+
+            switch (srcLight->mType) {
+            case aiLightSource_DIRECTIONAL:
+                light.type = Light::SUN;
+                if (node) {
+                    aiVector3D position, scale;
+                    aiQuaternion rotation;
+                    trans.Decompose(scale, rotation, position);
+                    qDebug() << "position " << printVector(position);
+                    qDebug() << "scale" << printVector(scale);
+                    assign(light.pos, rotation.Rotate(srcLight->mDirection));
+                }
+                else
+                    assign(light.pos, srcLight->mDirection);
+                break;
+            case aiLightSource_POINT:
+                light.type = Light::POINT;
+                if (node)
+                    srcLight->mPosition *= trans;
+                assign(light.pos, srcLight->mPosition);
+                break;
+            default:
+                continue;
+            }
+            assign(light.amb, srcLight->mColorAmbient);
+            assign(light.dif, srcLight->mColorDiffuse);
+            assign(light.spec, srcLight->mColorSpecular);
+            light.name = srcLight->mName.C_Str();
+            m_lights.append(light);
+
+            //qDebug() << "light " << srcLight->mName.C_Str() << " " << light.pos;
+        }
+    }
 }
 
 void GLLoader::loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals)

@@ -3,8 +3,10 @@
 
 #include "glnode.h"
 #include "glshader.h"
+#include "gllight.h"
 #include <QString>
 #include <QMap>
+#include <QList>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
@@ -16,6 +18,8 @@ public:
     GLTransformNode *convert();
     int *vertexBufferSize() { return m_vertex_buffer_size; }
     int *indexBufferSize() { return m_index_buffer_size; }
+
+    const QList<Light> &lights() { return m_lights; }
 
     struct Texture {
         QImage image;
@@ -32,9 +36,15 @@ private:
     int m_index_buffer_size[GLShader::NUM_SHADERS];
     uint m_num_vertex[GLShader::NUM_SHADERS];
     QMap<QString, Texture> m_textures;
+    QList<Light> m_lights;
+
+    void assign(QVector3D &qv, const aiVector3D &av);
+    void assign(QVector3D &qc, const aiColor3D &ac);
 
     GLTransformNode *convert(aiNode *node);
     GLRenderNode *convert(aiMesh *mesh);
+    void convertLights();
+
     void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals);
     void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals,
                     aiVector3D *texCoords);

@@ -8,9 +8,10 @@ SOURCES += \
     glrender.cpp \
     glloader.cpp \
     gltransform.cpp \
-    glanimatenode.cpp \
     glitem.cpp \
-    glitemqmlplugin.cpp
+    glitemqmlplugin.cpp \
+    glanimatenode.cpp \
+    gllight.cpp
 
 HEADERS += \
     glshader.h \
@@ -18,9 +19,10 @@ HEADERS += \
     glrender.h \
     glloader.h \
     gltransform.h \
-    glanimatenode.h \
     glitem.h \
-    glitemqmlplugin.h
+    glitemqmlplugin.h \
+    gllight.h \
+    glanimatenode.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

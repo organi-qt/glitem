@@ -23,11 +23,29 @@ GLRender::GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loade
     ratio /= m_viewport.height();
     m_state.projection_matrix.perspective(60, ratio, 0.1, 100.0);
 
+    QList<Light> lights = loader->lights();
+    // at least one light
+    if (lights.size() == 0) {
+        Light light;
+        light.pos = QVector3D(100, 100, 100);
+        light.amb = QVector3D(1, 1, 1);
+        light.dif = QVector3D(1, 1, 1);
+        light.spec = QVector3D(1, 1, 1);
+        light.name = "default";
+        lights.append(light);
+    }
+    // init lights
+    for (int i = 0; i < lights.size(); i++) {
+        RenderState::RSLight light;
+        light.light = lights[i];
+        m_state.lights.append(light);
+    }
+
     // mark all states dirty
     m_state.setDirty();
 
-    m_shaders[GLShader::PHONG] = new GLPhongShader();
-    m_shaders[GLShader::PHONG_DIFFUSE_TEXTURE] = new GLPhongDiffuseTextureShader();
+    m_shaders[GLShader::PHONG] = new GLPhongShader(lights);
+    m_shaders[GLShader::PHONG_DIFFUSE_TEXTURE] = new GLPhongDiffuseTextureShader(lights);
 
     for (int i = 0; i < GLShader::NUM_SHADERS; i++) {
         m_shaders[i]->initialize();

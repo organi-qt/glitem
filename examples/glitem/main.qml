@@ -24,9 +24,6 @@ Window {
         width: 700
         height: 400
         model: "model/car.dae"
-        //light_amb: Qt.vector3d(0.05, 0.05, 0.05)
-        //light_dif: Qt.vector3d(0, 0, 0)
-        //light_spec: Qt.vector3d(0, 0, 0)
 
         gltransform: [
             GLTranslation{translate: Qt.vector3d(0, -1.5, -7)},
@@ -35,7 +32,17 @@ Window {
                 axis: Qt.vector3d(0, 1, 0)
             }
         ]
-
+/*
+        gllight: [
+            GLLight {
+                name: "Sun"
+                pos: Qt.vector3d(0, -1, -1)
+                amb: Qt.vector3d(1, 1, 1)
+                dif: Qt.vector3d(1, 1, 1)
+                spec: Qt.vector3d(1, 1, 1)
+            }
+        ]
+*/
         GLAnimateNode {
             name: "mesh3d_003"
             transform: [
