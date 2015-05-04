@@ -25,24 +25,30 @@ Window {
         height: 400
         model: "model/car.dae"
 
-        gltransform: [
-            GLTranslation{translate: Qt.vector3d(0, -1.5, -7)},
-            GLRotation {
-                id: rot
-                axis: Qt.vector3d(0, 1, 0)
-            }
-        ]
-/*
+//*
         gllight: [
             GLLight {
                 name: "Sun"
-                pos: Qt.vector3d(0, -1, -1)
-                amb: Qt.vector3d(1, 1, 1)
-                dif: Qt.vector3d(1, 1, 1)
-                spec: Qt.vector3d(1, 1, 1)
+                pos: Qt.vector3d(-1, 1, -1)
+                amb: Qt.vector3d(0, 0, 0)
+                dif: Qt.vector3d(0.5, 0.5, 0.5)
+                spec: Qt.vector3d(0.5, 0.5, 0.5)
             }
         ]
-*/
+//*/
+
+        GLAnimateNode {
+            //name: "view"
+            name: "model"
+            transform: [
+                GLTranslation{translate: Qt.vector3d(0, -1.5, -7)},
+                GLRotation {
+                    id: rot
+                    axis: Qt.vector3d(0, 1, 0)
+                }
+            ]
+        }
+
         GLAnimateNode {
             name: "mesh3d_003"
             transform: [

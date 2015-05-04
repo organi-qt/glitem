@@ -23,17 +23,7 @@ GLRender::GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loade
     ratio /= m_viewport.height();
     m_state.projection_matrix.perspective(60, ratio, 0.1, 100.0);
 
-    QList<Light> lights = loader->lights();
-    // at least one light
-    if (lights.size() == 0) {
-        Light light;
-        light.pos = QVector3D(100, 100, 100);
-        light.amb = QVector3D(1, 1, 1);
-        light.dif = QVector3D(1, 1, 1);
-        light.spec = QVector3D(1, 1, 1);
-        light.name = "default";
-        lights.append(light);
-    }
+    const QList<Light> &lights = loader->lights();
     // init lights
     for (int i = 0; i < lights.size(); i++) {
         RenderState::RSLight light;
@@ -79,6 +69,30 @@ void GLRender::initTexture(GLTransformNode *node)
 
     for (int i = 0; i < node->transformChildCount(); i++)
         initTexture(node->transformChildAtIndex(i));
+}
+
+void GLRender::updateLightFinalPos()
+{
+    for (int i = 0; i < m_state.lights.size(); i++) {
+        Light *light = &m_state.lights[i].light;
+        QVector3D pos;
+        QMatrix4x4 &mat = light->node->modelviewMatrix();
+        switch (light->type) {
+        case Light::POINT:
+            pos = mat * light->pos;
+            break;
+        case Light::SUN:
+            {
+                QVector3D origin = mat * QVector3D();
+                QVector3D direction = mat * light->pos;
+                pos = direction - origin;
+                pos.normalize();
+            }
+            break;
+        }
+
+        m_state.setLightFinalPos(i, pos);
+    }
 }
 
 void GLRender::saveOpenGLState()

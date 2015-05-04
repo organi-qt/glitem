@@ -18,6 +18,7 @@ public:
 
     RenderState *state() { return &m_state; }
     GLTransformNode *root() { return m_root; }
+    void updateLightFinalPos();
 
 public slots:
     void render();

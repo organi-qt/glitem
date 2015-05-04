@@ -25,14 +25,14 @@ void GLItem::sync()
     }
 
     QMatrix4x4 modelview;
-    for (int i = 0; i < m_gltransforms.size(); i++)
-        m_gltransforms[i]->applyTo(&modelview);
     calcModelviewMatrix(m_root, modelview);
 
     m_render->state()->setOpacity(m_glopacity);
 
     for (int i = 0; i < m_gllights.size(); i++)
         m_gllights[i]->updateState(m_render->state());
+
+    m_render->updateLightFinalPos();
 }
 
 void GLItem::cleanup()
@@ -47,64 +47,6 @@ void GLItem::updateWindow()
 {
     if (window())
         window()->update();
-}
-
-QQmlListProperty<GLTransform> GLItem::gltransform()
-{
-    return QQmlListProperty<GLTransform>(this, 0, gltransform_append, gltransform_count, gltransform_at, gltransform_clear);
-}
-
-int GLItem::gltransform_count(QQmlListProperty<GLTransform> *list)
-{
-    GLItem *object = qobject_cast<GLItem *>(list->object);
-    if (object) {
-        return object->m_gltransforms.count();
-    } else {
-        qWarning()<<"Warning: could not find GLItem to query for transformation count.";
-        return 0;
-    }
-}
-
-void GLItem::gltransform_append(QQmlListProperty<GLTransform> *list, GLTransform *item)
-{
-    GLItem *object = qobject_cast<GLItem *>(list->object);
-    QList<GLTransform *> *ptrans;
-    if (object) {
-        ptrans = &object->m_gltransforms;
-
-        //We now need to connect the underlying transform so that any change will update the graphical item.
-        if (!ptrans->contains(item)) {
-            ptrans->append(item);
-            QObject::connect(item, SIGNAL(transformChanged()),
-                             object, SLOT(updateWindow()));
-        }
-    }
-    else
-        qWarning()<<"Warning: could not find GLItem to add transformation to.";
-}
-
-GLTransform *GLItem::gltransform_at(QQmlListProperty<GLTransform> *list, int idx)
-{
-    GLItem *object = qobject_cast<GLItem *>(list->object);
-    if (object) {
-        return object->m_gltransforms.at(idx);
-    } else {
-        qWarning()<<"Warning: could not find GLItem to query for transformations";
-        return 0;
-    }
-    return 0;
-}
-
-void GLItem::gltransform_clear(QQmlListProperty<GLTransform> *list)
-{
-
-    GLItem *object = qobject_cast<GLItem *>(list->object);
-    if (object) {
-        object->m_gltransforms.clear();
-        object->updateWindow();
-    }
-    else
-        qWarning()<<"Warning: could not find GLItem to clear of transformations";
 }
 
 void GLItem::setModel(const QString &value)

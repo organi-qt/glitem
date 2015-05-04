@@ -15,6 +15,7 @@ struct RenderState {
 
     struct RSLight {
         Light light;
+        QVector3D final_pos;
         bool pos_dirty;
         bool amb_dirty;
         bool dif_dirty;
@@ -43,8 +44,15 @@ struct RenderState {
         if (i >= lights.size())
             return;
 
-        if (lights[i].light.pos != value) {
-            lights[i].light.pos = value;
+        lights[i].light.pos = value;
+    }
+
+    void setLightFinalPos(int i, const QVector3D &value) {
+        if (i >= lights.size())
+            return;
+
+        if (lights[i].final_pos != value) {
+            lights[i].final_pos = value;
             lights[i].pos_dirty = true;
         }
     }

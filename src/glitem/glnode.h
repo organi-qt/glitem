@@ -76,6 +76,7 @@ public:
     void setAnimateNode(GLAnimateNode *node) { m_animate_node = node; }
 
     const QString &name() { return m_name; }
+    void setName(const QString &value) { m_name = value; }
 
 private:
     QList<GLRenderNode *> m_render_children;

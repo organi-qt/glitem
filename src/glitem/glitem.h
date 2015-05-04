@@ -12,14 +12,12 @@ class GLItem : public QQuickItem
     Q_OBJECT
     Q_PROPERTY(QString model READ model WRITE setModel)
     Q_PROPERTY(qreal glopacity READ glopacity WRITE setGLOpacity NOTIFY glopacityChanged)
-    Q_PROPERTY(QQmlListProperty<GLTransform> gltransform READ gltransform DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
     Q_CLASSINFO("DefaultProperty", "glnode")
 public:
     GLItem();
 
-    QQmlListProperty<GLTransform> gltransform();
     QQmlListProperty<GLAnimateNode> glnode();
     QQmlListProperty<GLLight> gllight();
 
@@ -46,12 +44,6 @@ private:
     QString m_model;
     GLTransformNode *m_root;
     qreal m_glopacity;
-
-    static int gltransform_count(QQmlListProperty<GLTransform> *list);
-    static void gltransform_append(QQmlListProperty<GLTransform> *list, GLTransform *);
-    static GLTransform *gltransform_at(QQmlListProperty<GLTransform> *list, int);
-    static void gltransform_clear(QQmlListProperty<GLTransform> *list);
-    QList<GLTransform *> m_gltransforms;
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);
     static void glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *);

@@ -6,6 +6,7 @@
 #include <QString>
 
 struct RenderState;
+class GLTransformNode;
 
 struct Light {
     enum { POINT, SUN } type;
@@ -14,6 +15,7 @@ struct Light {
     QVector3D amb;
     QVector3D dif;
     QVector3D spec;
+    GLTransformNode *node;
 };
 
 class GLLight : public QObject

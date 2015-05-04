@@ -43,7 +43,7 @@ private:
 
     GLTransformNode *convert(aiNode *node);
     GLRenderNode *convert(aiMesh *mesh);
-    void convertLights();
+    void convertLights(GLTransformNode *root);
 
     void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals);
     void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals,

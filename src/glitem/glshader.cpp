@@ -358,10 +358,8 @@ void GLPhongShader::updateRenderState(RenderState *s)
 
     Q_ASSERT(m_num_lights <= s->lights.size());
     for (int i = 0; i < m_num_lights; i++) {
-        if (s->lights[i].pos_dirty) {
-            program()->setUniformValue(m_id_light_pos[i], s->lights[i].light.pos);
-            qDebug() << "light pos=" << s->lights[i].light.pos;
-        }
+        if (s->lights[i].pos_dirty)
+            program()->setUniformValue(m_id_light_pos[i], s->lights[i].final_pos);
         if (s->lights[i].amb_dirty)
             program()->setUniformValue(m_id_light_amb[i], s->lights[i].light.amb);
         if (s->lights[i].dif_dirty)
@@ -427,7 +425,9 @@ const QString &GLPhongDiffuseTextureShader::fragmentShader() const {
             break;
         case Light::SUN:
             lights_calc += QString(
-                "    L = normalize(-light%1_pos);\n"
+                // must normalize sun light direction in CPU
+                // "    L = normalize(-light%1_pos);\n"
+                "    L = -light%1_pos;\n"
             ).arg(i);
             break;
         }

@@ -51,13 +51,17 @@ GLTransformNode *GLLoader::convert()
     if (!m_scene)
         return NULL;
 
+    GLTransformNode *view = new GLTransformNode("view", QMatrix4x4());
+    GLTransformNode *model = new GLTransformNode("model", QMatrix4x4());
     GLTransformNode *root = convert(m_scene->mRootNode);
+    view->addChild(model);
+    model->addChild(root);
 
-    convertLights();
+    convertLights(view);
 
     m_scene = NULL;
     m_importer.FreeScene();
-    return root;
+    return view;
 }
 
 GLRenderNode *GLLoader::convert(aiMesh *mesh)
@@ -206,7 +210,7 @@ void GLLoader::assign(QVector3D &qv, const aiVector3D &av)
     qv.setZ(av.z);
 }
 
-void GLLoader::convertLights()
+void GLLoader::convertLights(GLTransformNode *root)
 {
     m_lights.clear();
 
@@ -230,21 +234,10 @@ void GLLoader::convertLights()
             switch (srcLight->mType) {
             case aiLightSource_DIRECTIONAL:
                 light.type = Light::SUN;
-                if (node) {
-                    aiVector3D position, scale;
-                    aiQuaternion rotation;
-                    trans.Decompose(scale, rotation, position);
-                    qDebug() << "position " << printVector(position);
-                    qDebug() << "scale" << printVector(scale);
-                    assign(light.pos, rotation.Rotate(srcLight->mDirection));
-                }
-                else
-                    assign(light.pos, srcLight->mDirection);
+                assign(light.pos, srcLight->mDirection);
                 break;
             case aiLightSource_POINT:
                 light.type = Light::POINT;
-                if (node)
-                    srcLight->mPosition *= trans;
                 assign(light.pos, srcLight->mPosition);
                 break;
             default:
@@ -254,10 +247,26 @@ void GLLoader::convertLights()
             assign(light.dif, srcLight->mColorDiffuse);
             assign(light.spec, srcLight->mColorSpecular);
             light.name = srcLight->mName.C_Str();
+            light.node = new GLTransformNode(light.name, QMatrix4x4(trans[0]));
             m_lights.append(light);
 
-            //qDebug() << "light " << srcLight->mName.C_Str() << " " << light.pos;
+            root->addChild(light.node);
         }
+    }
+
+    // at least one light
+    if (m_lights.size() == 0) {
+        Light light;
+        light.pos = QVector3D(100, 100, 100);
+        light.amb = QVector3D(1, 1, 1);
+        light.dif = QVector3D(1, 1, 1);
+        light.spec = QVector3D(1, 1, 1);
+        light.type = Light::POINT;
+        light.name = "default_light";
+        light.node = new GLTransformNode(light.name, QMatrix4x4());
+
+        m_lights.append(light);
+        root->addChild(light.node);
     }
 }
 
