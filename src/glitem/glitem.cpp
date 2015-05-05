@@ -3,16 +3,16 @@
 #include "glitem.h"
 
 GLItem::GLItem()
-    : m_render(0), m_root(0), m_glopacity(1)
+    : m_render(0), m_root(0)
 {
-
+    connect(this, &GLItem::opacityChanged, this, &GLItem::updateWindow);
 }
 
 void GLItem::handleWindowChanged(QQuickWindow *win)
 {
     if (win) {
-        connect(win, SIGNAL(beforeSynchronizing()), this, SLOT(sync()), Qt::DirectConnection);
-        connect(win, SIGNAL(sceneGraphInvalidated()), this, SLOT(cleanup()), Qt::DirectConnection);
+        connect(win, &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);
+        connect(win, &QQuickWindow::sceneGraphInvalidated, this, &GLItem::cleanup, Qt::DirectConnection);
     }
 }
 
@@ -20,10 +20,10 @@ void GLItem::sync()
 {
     if (!m_render) {
         m_render = new GLRender(m_root, QRect(x(), y(), width(), height()), &m_loader);
-        connect(window(), SIGNAL(beforeRendering()), m_render, SLOT(render()), Qt::DirectConnection);
+        connect(window(), &QQuickWindow::beforeRendering, m_render, &GLRender::render, Qt::DirectConnection);
     }
 
-    if (isVisible()) {
+    if (isVisible() && opacity() != 0) {
         m_render->state()->visible = true;
         window()->setClearBeforeRendering(false);
     }
@@ -36,7 +36,7 @@ void GLItem::sync()
     QMatrix4x4 modelview;
     calcModelviewMatrix(m_root, modelview);
 
-    m_render->state()->setOpacity(m_glopacity);
+    m_render->state()->setOpacity(opacity());
 
     for (int i = 0; i < m_gllights.size(); i++)
         m_gllights[i]->updateState(m_render->state());
@@ -66,8 +66,7 @@ void GLItem::setModel(const QString &value)
         QFileInfo info(value);
         if (info.exists() && m_loader.load(info.path(), info.fileName())) {
             m_root = m_loader.convert();
-            connect(this, SIGNAL(windowChanged(QQuickWindow*)),
-                    this, SLOT(handleWindowChanged(QQuickWindow*)));
+            connect(this, &GLItem::windowChanged, this, &GLItem::handleWindowChanged);
         }
     }
 }
@@ -101,8 +100,8 @@ void GLItem::glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode 
             }
 
             pnodes->append(item);
-            QObject::connect(item, SIGNAL(transformChanged()),
-                             object, SLOT(updateWindow()));
+            QObject::connect(item, &GLAnimateNode::transformChanged,
+                             object, &GLItem::updateWindow);
         }
     }
     else
@@ -158,15 +157,6 @@ void GLItem::calcModelviewMatrix(GLTransformNode *node, const QMatrix4x4 &modelv
         calcModelviewMatrix(node->transformChildAtIndex(i), node->modelviewMatrix());
 }
 
-void GLItem::setGLOpacity(qreal value)
-{
-    if (m_glopacity != value) {
-        m_glopacity = value;
-        emit glopacityChanged();
-        updateWindow();
-    }
-}
-
 QQmlListProperty<GLLight> GLItem::gllight()
 {
     return QQmlListProperty<GLLight>(this, 0, gllight_append, gllight_count, gllight_at, gllight_clear);
@@ -192,8 +182,8 @@ void GLItem::gllight_append(QQmlListProperty<GLLight> *list, GLLight *item)
 
         if (!plights->contains(item)) {
             plights->append(item);
-            QObject::connect(item, SIGNAL(lightChanged()),
-                             object, SLOT(updateWindow()));
+            QObject::connect(item, &GLLight::lightChanged,
+                             object, &GLItem::updateWindow);
         }
     }
     else

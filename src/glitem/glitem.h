@@ -11,7 +11,6 @@ class GLItem : public QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(QString model READ model WRITE setModel)
-    Q_PROPERTY(qreal glopacity READ glopacity WRITE setGLOpacity NOTIFY glopacityChanged)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
     Q_CLASSINFO("DefaultProperty", "glnode")
@@ -23,12 +22,6 @@ public:
 
     QString model() { return m_model; }
     void setModel(const QString &value);
-
-    qreal glopacity() { return m_glopacity; }
-    void setGLOpacity(qreal value);
-
-signals:
-    void glopacityChanged();
 
 public slots:
     void sync();
@@ -43,7 +36,6 @@ private:
     GLRender *m_render;
     QString m_model;
     GLTransformNode *m_root;
-    qreal m_glopacity;
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);
     static void glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *);

@@ -29,8 +29,8 @@ void GLAnimateNode::transform_append(QQmlListProperty<GLTransform> *list, GLTran
         ptrans = &object->m_transforms;
         if (!ptrans->contains(item)) {
             ptrans->append(item);
-            QObject::connect(item, SIGNAL(transformChanged()),
-                             object, SIGNAL(transformChanged()));
+            QObject::connect(item, &GLTransform::transformChanged,
+                             object, &GLAnimateNode::transformChanged);
         }
     }
     else
