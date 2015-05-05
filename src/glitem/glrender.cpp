@@ -180,7 +180,7 @@ void GLRender::render()
 void GLRender::printOpenGLInfo()
 {
     QOpenGLContext *context = QOpenGLContext::currentContext();
-    /*
+
     if (context->isOpenGLES()) {
         if (context->hasExtension("GL_OES_vertex_array_object"))
             qDebug() << "OGLES has GL_OES_vertex_array_object extension";
@@ -200,7 +200,7 @@ void GLRender::printOpenGLInfo()
         qDebug() << "OGL has GL_KHR_debug extension";
     else
         qDebug() << "OGL has no GL_KHR_debug extension";
-    */
+
     qDebug() << "OGL surface format " << context->format();
 }
 

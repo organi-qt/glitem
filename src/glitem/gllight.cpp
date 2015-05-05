@@ -68,10 +68,13 @@ void GLLight::updateState(RenderState *state)
             }
         }
         // not found
-        if (m_state_index == -1)
+        if (m_state_index == -1) {
+            qWarning() << "no light found in model with name: " << m_name;
             m_state_index = -2;
+        }
     }
-    else if (m_state_index < -1)
+
+    if (m_state_index < -1)
         return;
 
     if (m_pos_dirty)

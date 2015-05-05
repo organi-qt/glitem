@@ -41,15 +41,13 @@ struct RenderState {
     }
 
     void setLightPos(int i, const QVector3D &value) {
-        if (i >= lights.size())
-            return;
+        Q_ASSERT(i >= 0 && i < lights.size());
 
         lights[i].light.pos = value;
     }
 
     void setLightFinalPos(int i, const QVector3D &value) {
-        if (i >= lights.size())
-            return;
+        Q_ASSERT(i >= 0 && i < lights.size());
 
         if (lights[i].final_pos != value) {
             lights[i].final_pos = value;
@@ -58,8 +56,7 @@ struct RenderState {
     }
 
     void setLightAmb(int i, const QVector3D &value) {
-        if (i >= lights.size())
-            return;
+        Q_ASSERT(i >= 0 && i < lights.size());
 
         if (lights[i].light.amb != value) {
             lights[i].light.amb = value;
@@ -68,8 +65,7 @@ struct RenderState {
     }
 
     void setLightDif(int i, const QVector3D &value) {
-        if (i >= lights.size())
-            return;
+        Q_ASSERT(i >= 0 && i < lights.size());
 
         if (lights[i].light.dif != value) {
             lights[i].light.dif = value;
@@ -78,8 +74,7 @@ struct RenderState {
     }
 
     void setLightSpec(int i, const QVector3D &value) {
-        if (i >= lights.size())
-            return;
+        Q_ASSERT(i >= 0 && i < lights.size());
 
         if (lights[i].light.spec != value) {
             lights[i].light.spec = value;
