@@ -15,6 +15,14 @@ Window {
         height: 200
         opacity: 0.5
         color: "green"
+        antialiasing: true
+        NumberAnimation on rotation {
+            from: 0
+            to: 360
+            duration: 20000
+            running: true
+            loops: Animation.Infinite
+        }
     }
 
     GLItem {
