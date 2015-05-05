@@ -13,7 +13,6 @@ void GLItem::handleWindowChanged(QQuickWindow *win)
     if (win) {
         connect(win, SIGNAL(beforeSynchronizing()), this, SLOT(sync()), Qt::DirectConnection);
         connect(win, SIGNAL(sceneGraphInvalidated()), this, SLOT(cleanup()), Qt::DirectConnection);
-        win->setClearBeforeRendering(false);
     }
 }
 
@@ -22,6 +21,16 @@ void GLItem::sync()
     if (!m_render) {
         m_render = new GLRender(m_root, QRect(x(), y(), width(), height()), &m_loader);
         connect(window(), SIGNAL(beforeRendering()), m_render, SLOT(render()), Qt::DirectConnection);
+    }
+
+    if (isVisible()) {
+        m_render->state()->visible = true;
+        window()->setClearBeforeRendering(false);
+    }
+    else {
+        m_render->state()->visible = false;
+        window()->setClearBeforeRendering(true);
+        return;
     }
 
     QMatrix4x4 modelview;

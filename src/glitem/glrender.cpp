@@ -164,6 +164,9 @@ void GLRender::restoreOpenGLState()
 
 void GLRender::render()
 {
+    if (!m_state.visible)
+        return;
+
     saveOpenGLState();
     switchOpenGlState();
 

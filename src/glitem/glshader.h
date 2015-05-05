@@ -12,6 +12,7 @@ class GLTransformNode;
 struct RenderState {
     QMatrix4x4 projection_matrix;
     float opacity;
+    bool visible;
 
     struct RSLight {
         Light light;

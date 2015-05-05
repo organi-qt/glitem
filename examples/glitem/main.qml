@@ -32,7 +32,6 @@ Window {
         width: 700
         height: 400
         model: "model/car.dae"
-
 //*
         gllight: [
             GLLight {
@@ -44,7 +43,6 @@ Window {
             }
         ]
 //*/
-
         GLAnimateNode {
             //name: "view"
             name: "model"
@@ -146,5 +144,32 @@ Window {
         running: true
         loops: Animation.Infinite
     }
-*/
+//*/
+/*
+    SequentialAnimation {
+
+        PauseAnimation {
+            duration: 3000
+        }
+
+        PropertyAction {
+            target: car
+            property: "visible"
+            value: false
+        }
+
+        PauseAnimation {
+            duration: 3000
+        }
+
+        PropertyAction {
+            target: car
+            property: "visible"
+            value: true
+        }
+
+        running: true
+        loops: Animation.Infinite
+    }
+//*/
 }
