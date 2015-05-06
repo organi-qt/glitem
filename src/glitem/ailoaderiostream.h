@@ -43,8 +43,9 @@
 #define AILOADERIOSTREAM_H
 
 #include <QtGlobal>
-#include <assimp/IOStream.hpp>
-#include <assimp/IOSystem.hpp>
+
+#include <IOStream.hpp>
+#include <IOSystem.hpp>
 
 QT_BEGIN_NAMESPACE
 class QIODevice;

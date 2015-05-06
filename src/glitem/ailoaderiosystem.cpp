@@ -41,7 +41,7 @@
 
 #include "ailoaderiosystem.h"
 #include "ailoaderiostream.h"
-#include <assimp/DefaultLogger.hpp>
+#include <DefaultLogger.hpp>
 
 #include <QFile>
 #include <QDir>

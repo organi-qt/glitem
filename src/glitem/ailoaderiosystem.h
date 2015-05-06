@@ -42,9 +42,9 @@
 #ifndef AILOADERIOSYSTEM_H
 #define AILOADERIOSYSTEM_H
 
-#include <assimp/IOSystem.hpp>
+#include <IOSystem.hpp>
 
-#include <QtCore/qurl.h>
+#include <QUrl>
 
 QT_BEGIN_NAMESPACE
 class QIODevice;
