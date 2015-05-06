@@ -19,11 +19,16 @@ void GLItem::handleWindowChanged(QQuickWindow *win)
 void GLItem::sync()
 {
     if (!m_render) {
-        m_render = new GLRender(m_root, QRect(x(), y(), width(), height()), &m_loader);
+        m_render = new GLRender(m_root, &m_loader);
         connect(window(), &QQuickWindow::beforeRendering, m_render, &GLRender::render, Qt::DirectConnection);
     }
 
-    if (isVisible() && opacity() != 0) {
+    QRect viewport(x(), y(), width(), height());
+    m_render->setViewport(viewport);
+
+    if (isVisible() && opacity() != 0 &&
+        width() > 0 && height() > 0 &&
+        QRect(0, 0, window()->width(), window()->height()).intersects(viewport)) {
         m_render->state()->visible = true;
         window()->setClearBeforeRendering(false);
     }

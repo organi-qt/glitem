@@ -1,8 +1,8 @@
 #include "glrender.h"
 #include "glnode.h"
 
-GLRender::GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loader)
-    : m_root(root), m_viewport(viewport)
+GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
+    : m_root(root)
 {
     initializeOpenGLFunctions();
     //printOpenGLInfo();
@@ -18,10 +18,6 @@ GLRender::GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loade
         m_textures[it.key()] = texture;
     }
     initTexture(m_root);
-
-    float ratio = m_viewport.width();
-    ratio /= m_viewport.height();
-    m_state.projection_matrix.perspective(60, ratio, 0.1, 100.0);
 
     const QList<Light> &lights = loader->lights();
     // init lights
@@ -93,6 +89,20 @@ void GLRender::updateLightFinalPos()
 
         m_state.setLightFinalPos(i, pos);
     }
+}
+
+void GLRender::setViewport(const QRect &viewport)
+{
+    if (m_viewport == viewport)
+        return;
+    m_viewport = viewport;
+
+    float ratio = m_viewport.width();
+    ratio /= m_viewport.height();
+
+    QMatrix4x4 mat;
+    mat.perspective(60, ratio, 0.1, 100.0);
+    m_state.setProjectionMatrix(mat);
 }
 
 void GLRender::saveOpenGLState()

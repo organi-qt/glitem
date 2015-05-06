@@ -13,12 +13,13 @@ class GLRender : public QObject, protected QOpenGLFunctions
 {
     Q_OBJECT
 public:
-    GLRender(GLTransformNode *root, const QRect &viewport, GLLoader *loader);
+    GLRender(GLTransformNode *root, GLLoader *loader);
     ~GLRender();
 
     RenderState *state() { return &m_state; }
     GLTransformNode *root() { return m_root; }
     void updateLightFinalPos();
+    void setViewport(const QRect &viewport);
 
 public slots:
     void render();

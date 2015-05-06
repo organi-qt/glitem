@@ -172,4 +172,74 @@ Window {
         loops: Animation.Infinite
     }
 //*/
+/*
+    SequentialAnimation {
+        NumberAnimation {
+            target: car
+            property: "width"
+            from: 700
+            to: 50
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "height"
+            from: 400
+            to: 0
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "height"
+            from: 0
+            to: 400
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "width"
+            from: 50
+            to: 700
+            duration: 3000
+        }
+
+        running: true
+        loops: Animation.Infinite
+    }
+//*/
+/*
+    SequentialAnimation {
+        NumberAnimation {
+            target: car
+            property: "x"
+            from: 50
+            to: 700
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "y"
+            from: 50
+            to: 480
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "y"
+            from: 480
+            to: 50
+            duration: 3000
+        }
+        NumberAnimation {
+            target: car
+            property: "x"
+            from: 700
+            to: 50
+            duration: 3000
+        }
+
+        running: true
+        loops: Animation.Infinite
+    }
+//*/
 }
