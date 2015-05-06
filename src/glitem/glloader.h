@@ -8,9 +8,8 @@
 #include <QMap>
 #include <QList>
 #include <QDir>
-
-#include <Importer.hpp>
-#include <scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
 
 class GLLoader
 {

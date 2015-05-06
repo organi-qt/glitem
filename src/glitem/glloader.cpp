@@ -1,6 +1,6 @@
 #include "glloader.h"
 #include "ailoaderiosystem.h"
-#include <postprocess.h>
+#include <assimp/postprocess.h>
 #include <QDebug>
 #include <QFile>
 

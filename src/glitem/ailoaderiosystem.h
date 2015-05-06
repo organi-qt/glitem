@@ -42,7 +42,7 @@
 #ifndef AILOADERIOSYSTEM_H
 #define AILOADERIOSYSTEM_H
 
-#include <IOSystem.hpp>
+#include <assimp/IOSystem.hpp>
 
 #include <QUrl>
 
