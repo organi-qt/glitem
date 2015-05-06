@@ -7,6 +7,7 @@
 #include <QString>
 #include <QMap>
 #include <QList>
+#include <QDir>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
@@ -14,7 +15,7 @@ class GLLoader
 {
 public:
     GLLoader();
-    bool load(const QString &path, const QString &file);
+    bool load(const QUrl &file);
     GLTransformNode *convert();
     int *vertexBufferSize() { return m_vertex_buffer_size; }
     int *indexBufferSize() { return m_index_buffer_size; }
@@ -29,7 +30,7 @@ public:
     const QMap<QString, Texture> &textures() { return m_textures; }
 
 private:
-    QString m_path;
+    QDir m_model_dir;
     Assimp::Importer m_importer;
     const aiScene *m_scene;
     int m_vertex_buffer_size[GLShader::NUM_SHADERS];

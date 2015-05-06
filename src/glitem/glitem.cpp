@@ -58,13 +58,12 @@ void GLItem::updateWindow()
         window()->update();
 }
 
-void GLItem::setModel(const QString &value)
+void GLItem::setModel(const QUrl &value)
 {
     if (m_model != value) {
         m_model = value;
 
-        QFileInfo info(value);
-        if (info.exists() && m_loader.load(info.path(), info.fileName())) {
+        if (m_loader.load(value)) {
             m_root = m_loader.convert();
             connect(this, &GLItem::windowChanged, this, &GLItem::handleWindowChanged);
         }
@@ -94,7 +93,7 @@ void GLItem::glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode 
     if (object) {
         pnodes = &object->m_glnodes;
         if (!pnodes->contains(item)) {
-            if (!object->bindAnimateNode(object->m_root, item)) {
+            if (object->m_root && !object->bindAnimateNode(object->m_root, item)) {
                 qWarning() << "no node find in model named: " << item->name();
                 return;
             }

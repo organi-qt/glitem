@@ -11,7 +11,9 @@ SOURCES += \
     glitem.cpp \
     glitemqmlplugin.cpp \
     glanimatenode.cpp \
-    gllight.cpp
+    gllight.cpp \
+    ailoaderiostream.cpp \
+    ailoaderiosystem.cpp
 
 HEADERS += \
     glshader.h \
@@ -22,7 +24,9 @@ HEADERS += \
     glitem.h \
     glitemqmlplugin.h \
     gllight.h \
-    glanimatenode.h
+    glanimatenode.h \
+    ailoaderiostream.h \
+    ailoaderiosystem.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

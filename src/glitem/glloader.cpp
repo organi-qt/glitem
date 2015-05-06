@@ -1,31 +1,47 @@
 #include "glloader.h"
+#include "ailoaderiosystem.h"
 #include <assimp/postprocess.h>
 #include <QDebug>
+#include <QFile>
 
 GLLoader::GLLoader()
     : m_scene(0), m_vertex_buffer_size{}, m_index_buffer_size{},
       m_num_vertex{}
 {
+    m_importer.SetIOHandler(new AiLoaderIOSystem());
 }
 
-bool GLLoader::load(const QString &path, const QString &file)
+bool GLLoader::load(const QUrl &file)
 {
-    m_scene = m_importer.ReadFile((path + '/' + file).toStdString(),
+    QString path;
+    if (file.scheme() == "file")
+        path = file.toLocalFile();
+    else if (file.scheme() == "qrc")
+        path = ':' + file.path();
+    else {
+        qWarning() << "invalide model path: " << file;
+        return false;
+    }
+
+    m_scene = m_importer.ReadFile(path.toStdString(),
                        aiProcess_CalcTangentSpace       |
                        aiProcess_Triangulate            |
                        aiProcess_JoinIdenticalVertices  |
                        aiProcess_SortByPType);
     if (!m_scene) {
-        qDebug() << "load file " << file << " fail: " << m_importer.GetErrorString();
+        qWarning() << "load file " << file << " fail: " << m_importer.GetErrorString();
         return false;
     }
 
     if (m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-        qDebug() << "file " << file << " with incomplete scene";
+        qWarning() << "file " << file << " with incomplete scene";
         m_scene = NULL;
         m_importer.FreeScene();
         return false;
     }
+
+    m_model_dir.setPath(path);
+    m_model_dir.cdUp();
 /*
     if (m_scene->HasCameras())
         for (uint i = 0; i < m_scene->mNumCameras; i++)
@@ -42,7 +58,7 @@ bool GLLoader::load(const QString &path, const QString &file)
             printMaterial(m_scene->mMaterials[i]);
 //*/
     //printNode(m_scene->mRootNode, "  ");
-    m_path = path;
+
     return true;
 }
 
@@ -124,17 +140,17 @@ GLRenderNode *GLLoader::convert(aiMesh *mesh)
         if (m_textures.contains(dpath)) {
             type = GLShader::PHONG_DIFFUSE_TEXTURE;
             if (m_textures[dpath].mode != wmode)
-                qWarning() << "texture with different wrap mode detacted: " << m_path + '/' + dpath;
+                qWarning() << "texture with different wrap mode detacted: " << m_model_dir.filePath(dpath);
         }
         else {
             Texture texture;
-            if (texture.image.load(m_path + '/' + dpath)) {
+            if (texture.image.load(m_model_dir.filePath(dpath))) {
                 type = GLShader::PHONG_DIFFUSE_TEXTURE;
                 texture.mode = wmode;
                 m_textures[dpath] = texture;
             }
             else
-                qWarning() << "load texture image fail: " << m_path + '/' + dpath;
+                qWarning() << "load texture image fail: " << m_model_dir.filePath(dpath);
         }
     }
 

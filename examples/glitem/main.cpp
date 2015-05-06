@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     QSurfaceFormat::setDefaultFormat(format);
 //*/
     QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("main.qml")));
+    engine.load(QUrl("main.qml"));
 
     return app.exec();
 }

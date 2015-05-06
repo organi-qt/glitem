@@ -10,7 +10,7 @@
 class GLItem : public QQuickItem
 {
     Q_OBJECT
-    Q_PROPERTY(QString model READ model WRITE setModel)
+    Q_PROPERTY(QUrl model READ model WRITE setModel)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
     Q_CLASSINFO("DefaultProperty", "glnode")
@@ -20,8 +20,8 @@ public:
     QQmlListProperty<GLAnimateNode> glnode();
     QQmlListProperty<GLLight> gllight();
 
-    QString model() { return m_model; }
-    void setModel(const QString &value);
+    QUrl model() { return m_model; }
+    void setModel(const QUrl &value);
 
 public slots:
     void sync();
@@ -34,7 +34,7 @@ private slots:
 private:
     GLLoader m_loader;
     GLRender *m_render;
-    QString m_model;
+    QUrl m_model;
     GLTransformNode *m_root;
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);

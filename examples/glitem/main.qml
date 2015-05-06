@@ -31,7 +31,7 @@ Window {
         y: 50
         width: 700
         height: 400
-        model: "model/car.dae"
+        model: "qrc:/model/car.dae"
 //*
         gllight: [
             GLLight {
