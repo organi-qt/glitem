@@ -32,6 +32,7 @@ Window {
         width: 700
         height: 400
         model: "qrc:/model/car.dae"
+        //asynchronous: false
 //*
         gllight: [
             GLLight {

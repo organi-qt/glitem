@@ -1,23 +1,18 @@
 #include <QQuickWindow>
-#include <QFileInfo>
+#include <QThread>
 #include "glitem.h"
 
 GLItem::GLItem()
-    : m_render(0), m_root(0)
+    : m_render(0), m_root(0), m_status(Null), m_asynchronous(true)
 {
     connect(this, &GLItem::opacityChanged, this, &GLItem::updateWindow);
 }
 
-void GLItem::handleWindowChanged(QQuickWindow *win)
-{
-    if (win) {
-        connect(win, &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);
-        connect(win, &QQuickWindow::sceneGraphInvalidated, this, &GLItem::cleanup, Qt::DirectConnection);
-    }
-}
-
 void GLItem::sync()
 {
+    if (m_status != Ready)
+        return;
+
     if (!m_render) {
         m_render = new GLRender(m_root, &m_loader);
         connect(window(), &QQuickWindow::beforeRendering, m_render, &GLRender::render, Qt::DirectConnection);
@@ -67,11 +62,65 @@ void GLItem::setModel(const QUrl &value)
 {
     if (m_model != value) {
         m_model = value;
+        emit modelChanged();
+    }
+}
 
-        if (m_loader.load(value)) {
-            m_root = m_loader.convert();
-            connect(this, &GLItem::windowChanged, this, &GLItem::handleWindowChanged);
+void GLItem::setAsynchronous(bool value)
+{
+    if (m_asynchronous != value) {
+        m_asynchronous = value;
+        emit asynchronousChanged();
+    }
+}
+
+void GLItem::load()
+{
+    m_status = Loading;
+    emit statusChanged();
+
+    if (m_loader.load(m_model) && (m_root = m_loader.convert())) {
+        foreach (GLAnimateNode *node, m_glnodes) {
+            if (!bindAnimateNode(m_root, node))
+                qWarning() << "no node find in model named: " << node->name();
         }
+        m_status = Ready;
+        if (window()) {
+            connect(window(), &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);
+            connect(window(), &QQuickWindow::sceneGraphInvalidated, this, &GLItem::cleanup, Qt::DirectConnection);
+        }
+    }
+    else
+        m_status = Error;
+    emit statusChanged();
+}
+
+class AsyncLoadThread : public QThread
+{
+public:
+    AsyncLoadThread(QObject *parent = 0)
+        : QThread(parent)
+    {}
+
+protected:
+    void run() {
+        GLItem *item = qobject_cast<GLItem *>(parent());
+        item->load();
+    }
+};
+
+void GLItem::componentComplete()
+{
+    QQuickItem::componentComplete();
+
+    if (m_model.isValid()) {
+        if (m_asynchronous) {
+            QThread *t = new AsyncLoadThread(this);
+            connect(t, &QThread::finished, t, &QObject::deleteLater);
+            t->start();
+        }
+        else
+            load();
     }
 }
 
@@ -98,11 +147,6 @@ void GLItem::glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode 
     if (object) {
         pnodes = &object->m_glnodes;
         if (!pnodes->contains(item)) {
-            if (object->m_root && !object->bindAnimateNode(object->m_root, item)) {
-                qWarning() << "no node find in model named: " << item->name();
-                return;
-            }
-
             pnodes->append(item);
             QObject::connect(item, &GLAnimateNode::transformChanged,
                              object, &GLItem::updateWindow);

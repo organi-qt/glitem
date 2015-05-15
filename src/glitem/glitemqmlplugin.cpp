@@ -3,6 +3,7 @@
 
 void GLItemQmlPlugin::registerTypes(const char *uri)
 {
+    Q_UNUSED(uri);
     Q_ASSERT(uri == QLatin1String("GLItem"));
     qmlRegisterType<GLItem>("GLItem", 1, 0, "GLItem");
     qmlRegisterType<GLScale>("GLItem", 1, 0, "GLScale");

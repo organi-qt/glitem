@@ -10,9 +10,11 @@
 class GLItem : public QQuickItem
 {
     Q_OBJECT
-    Q_PROPERTY(QUrl model READ model WRITE setModel)
+    Q_PROPERTY(QUrl model READ model WRITE setModel NOTIFY modelChanged)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
+    Q_PROPERTY(Status status READ status NOTIFY statusChanged)
+    Q_PROPERTY(bool asynchronous READ asynchronous WRITE setAsynchronous NOTIFY asynchronousChanged)
     Q_CLASSINFO("DefaultProperty", "glnode")
 public:
     GLItem();
@@ -23,19 +25,32 @@ public:
     QUrl model() { return m_model; }
     void setModel(const QUrl &value);
 
+    enum Status { Null, Ready, Loading, Error };
+    Status status() const { return m_status; }
+
+    bool asynchronous() const { return m_asynchronous; }
+    void setAsynchronous(bool value);
+
+    void componentComplete();
+    void load();
+
+signals:
+    void modelChanged();
+    void statusChanged();
+    void asynchronousChanged();
+
 public slots:
     void sync();
     void cleanup();
     void updateWindow();
-
-private slots:
-    void handleWindowChanged(QQuickWindow *win);
 
 private:
     GLLoader m_loader;
     GLRender *m_render;
     QUrl m_model;
     GLTransformNode *m_root;
+    Status m_status;
+    bool m_asynchronous;
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);
     static void glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *);
