@@ -112,73 +112,37 @@ GLRenderNode *GLLoader::convert(aiMesh *mesh)
 
     GLShader::ShaderType type = GLShader::PHONG;
 
-    QString dpath;
-    aiString path;
-    aiTextureMapMode mode;
-    if (mesh->GetNumUVChannels() > 0 && material->GetTextureCount(aiTextureType_DIFFUSE) > 0 &&
-        material->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, &mode) == aiReturn_SUCCESS) {
-        QOpenGLTexture::WrapMode wmode;
-        switch (mode) {
-        case aiTextureMapMode_Clamp:
-            wmode = QOpenGLTexture::ClampToEdge;
-            break;
-        case aiTextureMapMode_Wrap:
-            wmode = QOpenGLTexture::Repeat;
-            break;
-        case aiTextureMapMode_Mirror:
-            wmode = QOpenGLTexture::MirroredRepeat;
-            break;
-        case aiTextureMapMode_Decal:
-            wmode = QOpenGLTexture::ClampToBorder;
-            break;
-        default:
-            wmode = QOpenGLTexture::Repeat;
-            break;
-        }
-
-        dpath = path.C_Str();
-        if (m_textures.contains(dpath)) {
+    QString dpath, spath;
+    if (mesh->GetNumUVChannels() > 0) {
+        if (loadTexture(material, aiTextureType_DIFFUSE, dpath))
             type = GLShader::PHONG_DIFFUSE_TEXTURE;
-            if (m_textures[dpath].mode != wmode)
-                qWarning() << "texture with different wrap mode detacted: " << m_model_dir.filePath(dpath);
-        }
-        else {
-            Texture texture;
-            if (texture.image.load(m_model_dir.filePath(dpath))) {
-                type = GLShader::PHONG_DIFFUSE_TEXTURE;
-                texture.mode = wmode;
-                m_textures[dpath] = texture;
-            }
+        if (loadTexture(material, aiTextureType_SPECULAR, spath)) {
+            if (type == GLShader::PHONG)
+                type = GLShader::PHONG_SPECULAR_TEXTURE;
             else
-                qWarning() << "load texture image fail: " << m_model_dir.filePath(dpath);
+                type = GLShader::PHONG_DIFFUSE_SPECULAR_TEXTURE;
         }
     }
 
-    GLRenderNode *node = 0;
-    if (type == GLShader::PHONG) {
-        node = new GLPhongNode(m_vertex_buffer_size[type], m_index_buffer_size[type],
-                               mesh->mNumVertices, mesh->mNumFaces * 3,
-                               QVector3D(amb.r, amb.g, amb.b),
-                               QVector3D(dif.r, dif.g, dif.b),
-                               QVector3D(spec.r, spec.g, spec.b),
-                               shine);
-        node->allocateData();
+    GLPhongNode *node = new GLPhongNode(
+                m_vertex_buffer_size[type], m_index_buffer_size[type],
+                mesh->mNumVertices, mesh->mNumFaces * 3, type);
+    node->setMaterial(
+                QVector3D(amb.r, amb.g, amb.b),
+                QVector3D(dif.r, dif.g, dif.b),
+                QVector3D(spec.r, spec.g, spec.b),
+                shine);
+    node->allocateData();
+    if (type == GLShader::PHONG)
         loadVertex(node, mesh->mVertices, mesh->mNormals);
-        loadIndex(node, mesh->mFaces);
-    }
-
-    if (type == GLShader::PHONG_DIFFUSE_TEXTURE) {
-        node = new GLPhongDiffuseTextureNode(
-                    m_vertex_buffer_size[type], m_index_buffer_size[type],
-                    mesh->mNumVertices, mesh->mNumFaces * 3,
-                    QVector3D(amb.r, amb.g, amb.b),
-                    QVector3D(dif.r, dif.g, dif.b),
-                    QVector3D(spec.r, spec.g, spec.b),
-                    shine, dpath);
-        node->allocateData();
+    else
         loadVertex(node, mesh->mVertices, mesh->mNormals, mesh->mTextureCoords[0]);
-        loadIndex(node, mesh->mFaces);
-    }
+    loadIndex(node, mesh->mFaces);
+
+    if (!dpath.isEmpty())
+        node->setDiffuseTexturePath(dpath);
+    if (!spath.isEmpty())
+        node->setSpecularTexturePath(spath);
 
     m_vertex_buffer_size[type] += node->vertexCount() * node->stride();
     m_index_buffer_size[type] += node->indexCount() * sizeof(ushort);
@@ -311,6 +275,56 @@ void GLLoader::loadIndex(GLRenderNode *node, aiFace *faces)
         index[i*3 + 1] = faces[i].mIndices[1] + m_num_vertex[node->type()];
         index[i*3 + 2] = faces[i].mIndices[2] + m_num_vertex[node->type()];
     }
+}
+
+bool GLLoader::loadTexture(aiMaterial *material, aiTextureType type, QString &path)
+{
+    aiString tpath;
+    aiTextureMapMode mode;
+    if (material->GetTextureCount(type) > 0 &&
+        material->GetTexture(type, 0, &tpath, NULL, NULL, NULL, NULL, &mode)
+            == aiReturn_SUCCESS) {
+        QOpenGLTexture::WrapMode wmode;
+        switch (mode) {
+        case aiTextureMapMode_Clamp:
+            wmode = QOpenGLTexture::ClampToEdge;
+            break;
+        case aiTextureMapMode_Wrap:
+            wmode = QOpenGLTexture::Repeat;
+            break;
+        case aiTextureMapMode_Mirror:
+            wmode = QOpenGLTexture::MirroredRepeat;
+            break;
+        case aiTextureMapMode_Decal:
+            wmode = QOpenGLTexture::ClampToBorder;
+            break;
+        default:
+            wmode = QOpenGLTexture::Repeat;
+            break;
+        }
+
+        path = tpath.C_Str();
+        if (m_textures.contains(path)) {
+            if (m_textures[path].mode != wmode)
+                qWarning() << "texture with different wrap mode detacted: "
+                           << m_model_dir.filePath(path);
+            return true;
+        }
+        else {
+            Texture texture;
+            if (texture.image.load(m_model_dir.filePath(path))) {
+                texture.mode = wmode;
+                m_textures[path] = texture;
+                return true;
+            }
+            else {
+                qWarning() << "load texture image fail: "
+                           << m_model_dir.filePath(path);
+                return false;
+            }
+        }
+    }
+    return false;
 }
 
 void GLLoader::printCamera(aiCamera *camera)

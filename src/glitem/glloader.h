@@ -50,6 +50,7 @@ private:
     void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals,
                     aiVector3D *texCoords);
     void loadIndex(GLRenderNode *node, aiFace *faces);
+    bool loadTexture(aiMaterial *material, aiTextureType type, QString &path);
 
     // debug prints
     static void printMaterial(aiMaterial *);

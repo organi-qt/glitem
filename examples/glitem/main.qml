@@ -32,6 +32,7 @@ Window {
         width: 700
         height: 400
         model: "qrc:/model/car.dae"
+        //model: "model/SWIM/Car Swim N220711.3DS"
         //asynchronous: false
 //*
         gllight: [
@@ -49,6 +50,7 @@ Window {
             name: "model"
             transform: [
                 GLTranslation{translate: Qt.vector3d(0, -1.5, -7)},
+                //GLScale{scale: 1.0 / 1200},
                 GLRotation {
                     id: rot
                     axis: Qt.vector3d(0, 1, 0)

@@ -90,9 +90,24 @@ private:
 class GLPhongNode : public GLRenderNode {
 public:
     GLPhongNode(int voff, int ioff, int numVertex, int numIndex,
-                const QVector3D &nka, const QVector3D &nkd, const QVector3D &nks, float nalpha);
-    virtual GLShader::ShaderType type() { return GLShader::PHONG; }
-    virtual int stride() { return sizeof(NormalPoint3D); }
+                GLShader::ShaderType type);
+
+    void setMaterial(const QVector3D &nka, const QVector3D &nkd, const QVector3D &nks,
+                     float nalpha);
+    void setDiffuseTexturePath(const QString &path) { m_diffuse_texture_path = path; }
+    void setSpecularTexturePath(const QString &path) { m_specular_texture_path = path; }
+
+    const QString &diffuseTexturePath() { return m_diffuse_texture_path; }
+    const QString &specularTexturePath() { return m_specular_texture_path; }
+
+    void setDiffuseTexture(QOpenGLTexture *texture) { m_diffuse_texture = texture; }
+    void setSpecularTexture(QOpenGLTexture *texture) { m_specular_texture = texture; }
+
+    QOpenGLTexture *diffuseTexture() { return m_diffuse_texture; }
+    QOpenGLTexture *specularTexture() { return m_specular_texture; }
+
+    virtual GLShader::ShaderType type() { return m_type; }
+    virtual int stride();
 
     QVector3D &ka() { return m_ka; }
     QVector3D &kd() { return m_kd; }
@@ -100,28 +115,17 @@ public:
     float &alpha() { return m_alpha; }
 
 private:
+    GLShader::ShaderType m_type;
+
     QVector3D m_ka;
     QVector3D m_kd;
     QVector3D m_ks;
     float m_alpha;
-};
 
-class GLPhongDiffuseTextureNode : public GLPhongNode
-{
-public:
-    GLPhongDiffuseTextureNode(int voff, int ioff, int numVertex, int numIndex,
-        const QVector3D &nka, const QVector3D &nkd, const QVector3D &nks, float nalpha,
-        const QString &image_path);
-    virtual GLShader::ShaderType type() { return GLShader::PHONG_DIFFUSE_TEXTURE; }
-    virtual int stride() { return sizeof(TexturedNormalPoint3D); }
-
-    const QString &imagePath() { return m_image_path; }
-    QOpenGLTexture *texture() { return m_texture; }
-    void setTexture(QOpenGLTexture *tex) { m_texture = tex; }
-
-private:
-    QString m_image_path;
-    QOpenGLTexture *m_texture;
+    QString m_diffuse_texture_path;
+    QOpenGLTexture *m_diffuse_texture;
+    QString m_specular_texture_path;
+    QOpenGLTexture *m_specular_texture;
 };
 
 #endif // GLNODE_H

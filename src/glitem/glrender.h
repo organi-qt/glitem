@@ -43,7 +43,7 @@ private:
     void switchOpenGlState();
     void restoreOpenGLState();
 
-    void initTexture(GLTransformNode *);
+    void initNode(GLTransformNode *, const QList<Light> &lights);
     void renderNode(GLTransformNode *);
 
     void printOpenGLInfo();

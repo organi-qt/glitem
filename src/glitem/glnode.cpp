@@ -54,23 +54,27 @@ GLTransformNode::~GLTransformNode()
         delete m_transform_children[i];
 }
 
-GLPhongNode::GLPhongNode(int voff, int ioff,
-                         int numVertex, int numIndex,
-                         const QVector3D &nka, const QVector3D &nkd,
-                         const QVector3D &nks, float nalpha)
+GLPhongNode::GLPhongNode(int voff, int ioff, int numVertex, int numIndex,
+                         GLShader::ShaderType type)
     : GLRenderNode(voff, ioff, numVertex, numIndex),
-      m_ka(nka), m_kd(nkd), m_ks(nks), m_alpha(nalpha)
+      m_type(type), m_diffuse_texture(0),
+      m_specular_texture(0)
 {
-
 }
 
-GLPhongDiffuseTextureNode::GLPhongDiffuseTextureNode(
-        int voff, int ioff, int numVertex, int numIndex,
-        const QVector3D &nka, const QVector3D &nkd, const QVector3D &nks, float nalpha,
-        const QString &image_path)
-    : GLPhongNode(voff, ioff, numVertex, numIndex, nka, nkd, nks, nalpha),
-      m_image_path(image_path), m_texture(0)
+void GLPhongNode::setMaterial(const QVector3D &nka, const QVector3D &nkd,
+                              const QVector3D &nks, float nalpha)
 {
-
+    m_ka = nka;
+    m_kd = nkd;
+    m_ks = nks;
+    m_alpha = nalpha;
 }
 
+int GLPhongNode::stride()
+{
+    if (m_type == GLShader::PHONG)
+        return sizeof(NormalPoint3D);
+    else
+        return sizeof(TexturedNormalPoint3D);
+}

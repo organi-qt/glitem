@@ -172,9 +172,10 @@ void GLShader::renderNode(GLTransformNode *node)
 
 const int GLPhongShader::m_max_lights;
 
-GLPhongShader::GLPhongShader(const QList<Light> &lights)
+GLPhongShader::GLPhongShader(const QList<Light> &lights, ShaderType type)
     : GLShader(), m_lights(lights),
-      m_num_lights(qMin(m_max_lights, m_lights.size()))
+      m_num_lights(qMin(m_max_lights, m_lights.size())),
+      m_type(type)
 {
     Q_ASSERT(m_lights.size() > 0);
 }
@@ -183,9 +184,9 @@ GLPhongShader::~GLPhongShader()
 {
 }
 
-const char *GLPhongShader::vertexShader() const
+const QString &GLPhongShader::vertexShader() const
 {
-    return
+    static const QString pshader =
     "uniform highp mat4 modelview_matrix;\n"
     "uniform highp mat4 projection_matrix;\n"
     "uniform highp mat3 normal_matrix;\n"
@@ -199,69 +200,112 @@ const char *GLPhongShader::vertexShader() const
     "    normal = normal_matrix * normalIn;\n"
     "    gl_Position = projection_matrix * eyeTemp;\n"
     "}";
+
+    static const QString tshader =
+    "uniform highp mat4 modelview_matrix;\n"
+    "uniform highp mat4 projection_matrix;\n"
+    "uniform highp mat3 normal_matrix;\n"
+    "attribute vec3 positionIn;\n"
+    "attribute vec3 normalIn;\n"
+    "attribute vec2 texcoordIn;\n"
+    "varying vec3 normal;\n"
+    "varying vec2 texcoord;\n"
+    "varying vec3 eyePosition;\n"
+    "void main() {\n"
+    "    vec4 eyeTemp = modelview_matrix * vec4(positionIn, 1);\n"
+    "    eyePosition = eyeTemp.xyz;\n"
+    "    normal = normal_matrix * normalIn;\n"
+    "    texcoord = texcoordIn;\n"
+    "    gl_Position = projection_matrix * eyeTemp;\n"
+    "}";
+
+    if (m_type == PHONG)
+        return pshader;
+    else
+        return tshader;
 }
 
 const QString &GLPhongShader::fragmentShader() const
 {
-    QString lights_declare;
-    QString lights_calc;
-    for (int i = 0; i < m_num_lights; i++) {
-        lights_declare += QString(
-            "uniform lowp vec3 light%1_pos;\n"
-            "uniform lowp vec3 light%1_amb;\n"
-            "uniform lowp vec3 light%1_dif;\n"
-            "uniform lowp vec3 light%1_spec;\n"
-        ).arg(i);
+    static QString shaders[4];
 
-        switch (m_lights[i].type) {
-        case Light::POINT:
-            lights_calc += QString(
-                "    L = normalize(light%1_pos - eyePosition);\n"
+    if (shaders[m_type].isEmpty()) {
+        QString lights_declare;
+        QString lights_calc;
+        for (int i = 0; i < m_num_lights; i++) {
+            lights_declare += QString(
+                "uniform lowp vec3 light%1_pos;\n"
+                "uniform lowp vec3 light%1_amb;\n"
+                "uniform lowp vec3 light%1_dif;\n"
+                "uniform lowp vec3 light%1_spec;\n"
             ).arg(i);
-            break;
-        case Light::SUN:
+
+            switch (m_lights[i].type) {
+            case Light::POINT:
+                lights_calc += QString(
+                    "    L = normalize(light%1_pos - eyePosition);\n"
+                ).arg(i);
+                break;
+            case Light::SUN:
+                lights_calc += QString(
+                    "    L = normalize(-light%1_pos);\n"
+                ).arg(i);
+                break;
+            }
+
             lights_calc += QString(
-                "    L = normalize(-light%1_pos);\n"
+                "    Rd = max(0.0, dot(L, N));\n"
+                "    diffuse += Rd * light%1_dif;\n"
+                "    R = reflect(-L, N);\n"
+                "    Rs = pow(max(0.0, dot(V, R)), alpha);\n"
+                "    specular += Rs * light%1_spec;\n"
+                "    ambient += light%1_amb;\n"
             ).arg(i);
-            break;
         }
 
-        lights_calc += QString(
-            "    Rd = max(0.0, dot(L, N));\n"
-            "    color += Rd * Kd * light%1_dif;\n"
-            "    R = reflect(-L, N);\n"
-            "    Rs = pow(max(0.0, dot(V, R)), alpha);\n"
-            "    color += Rs * Ks * light%1_spec;\n"
-            "    color += Ka * light%1_amb;\n"
-        ).arg(i);
+        shaders[m_type] =
+        GLES_FRAG_SHADER_HEADER
+        "uniform lowp vec3 Ka;\n"
+        "uniform lowp vec3 Kd;\n"
+        "uniform lowp vec3 Ks;\n"
+        "uniform lowp float alpha;\n"
+        + lights_declare +
+        "uniform lowp float opacity;\n"
+        + (m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
+        "uniform sampler2D diffuse_texture;\n" : "")
+        + (m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
+        "uniform sampler2D specular_texture;\n" : "") +
+        "varying vec3 normal;\n"
+        "varying vec3 eyePosition;\n"
+        + (m_type == PHONG ? "" :
+        "varying vec2 texcoord;\n") +
+        "void main() {\n"
+        "    vec3 N = normalize(normal);\n"
+        "    vec3 V = normalize(-eyePosition);\n"
+        "    vec3 L, R;\n"
+        "    float Rd, Rs;\n"
+        "    vec3 ambient = vec3(0.0);\n"
+        "    vec3 diffuse = vec3(0.0);\n"
+        "    vec3 specular = vec3(0.0);\n"
+        + lights_calc
+        + (m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
+        "    diffuse *= texture2D(diffuse_texture, texcoord).rgb;\n" : "")
+        + (m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
+        "    specular *= texture2D(specular_texture, texcoord).rgb;\n" : "") +
+        "    gl_FragColor = vec4(Ka * ambient + Kd * diffuse + Ks * specular, 1.0) * opacity;\n"
+        "}";
     }
 
-    static const QString shader =
-    GLES_FRAG_SHADER_HEADER
-    "uniform lowp vec3 Ka;\n"
-    "uniform lowp vec3 Kd;\n"
-    "uniform lowp vec3 Ks;\n"
-    "uniform lowp float alpha;\n"
-    + lights_declare +
-    "uniform lowp float opacity;\n"
-    "varying vec3 normal;\n"
-    "varying vec3 eyePosition;\n"
-    "void main() {\n"
-    "    vec3 N = normalize(normal);\n"
-    "    vec3 V = normalize(-eyePosition);\n"
-    "    vec3 L, R;\n"
-    "    float Rd, Rs;\n"
-    "    vec3 color = vec3(0.0);\n"
-    + lights_calc +
-    "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
-    "}";
-
-    return shader;
+    return shaders[m_type];
 }
 
 char const *const *GLPhongShader::attributeNames() const {
-    static char const *const attr[] = { "positionIn", "normalIn", 0 };
-    return attr;
+    static char const *const pattr[] = { "positionIn", "normalIn", 0 };
+    static char const *const tattr[] = { "positionIn", "normalIn", "texcoordIn", 0 };
+    if (m_type == PHONG)
+        return pattr;
+    else
+        return tattr;
 }
 
 void GLPhongShader::resolveUniforms() {
@@ -326,6 +370,23 @@ void GLPhongShader::resolveUniforms() {
     if (m_id_alpha < 0) {
         qWarning("GLPhongShader does not implement 'uniform lowp float alpha' in its shader");
     }
+
+    int texture_slot = 0;
+    if (m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) {
+        m_id_diffuse_texture = program()->uniformLocation("diffuse_texture");
+        if (m_id_diffuse_texture < 0) {
+            qWarning("GLPhongShader does not implement 'uniform sampler2D diffuse_texture;' in its shader");
+        }
+        program()->setUniformValue(m_id_diffuse_texture, texture_slot++);
+    }
+
+    if (m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) {
+        m_id_specular_texture = program()->uniformLocation("specular_texture");
+        if (m_id_specular_texture < 0) {
+            qWarning("GLPhongShader does not implement 'uniform sampler2D specular_texture;' in its shader");
+        }
+        program()->setUniformValue(m_id_specular_texture, texture_slot);
+    }
 }
 
 void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
@@ -340,6 +401,14 @@ void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
         program()->setUniformValue(m_id_ks, pn->ks());
     if (!po || po->alpha() != pn->alpha())
         program()->setUniformValue(m_id_alpha, pn->alpha());
+
+    int texture_slot = 0;
+    if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) &&
+        (!po || po->diffuseTexture() != pn->diffuseTexture()))
+        pn->diffuseTexture()->bind(texture_slot++);
+    if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) &&
+        (!po || po->specularTexture() != pn->specularTexture()))
+        pn->specularTexture()->bind(texture_slot);
 }
 
 void GLPhongShader::updatePerTansformNode(GLTransformNode *t)
@@ -369,137 +438,34 @@ void GLPhongShader::updateRenderState(RenderState *s)
     }
 }
 
-GLPhongDiffuseTextureShader::GLPhongDiffuseTextureShader(const QList<Light> &lights)
-    : GLPhongShader(lights)
+void GLPhongShader::bind()
 {
+    GLPhongNode *last = static_cast<GLPhongNode *>(m_last_node);
 
-}
-
-void GLPhongDiffuseTextureShader::resolveUniforms()
-{
-    GLPhongShader::resolveUniforms();
-
-    m_id_diffuse_texture = program()->uniformLocation("diffuse_texture");
-    if (m_id_diffuse_texture < 0) {
-        qWarning("GLPhongDiffuseTextureShader does not implement 'uniform sampler2D diffuse_texture;' in its shader");
-    }
-    program()->setUniformValue(m_id_diffuse_texture, 0);
-}
-
-const char *GLPhongDiffuseTextureShader::vertexShader() const {
-    return
-    "uniform highp mat4 modelview_matrix;\n"
-    "uniform highp mat4 projection_matrix;\n"
-    "uniform highp mat3 normal_matrix;\n"
-    "attribute vec3 positionIn;\n"
-    "attribute vec3 normalIn;\n"
-    "attribute vec2 texcoordIn;\n"
-    "varying vec3 normal;\n"
-    "varying vec2 texcoord;\n"
-    "varying vec3 eyePosition;\n"
-    "void main() {\n"
-    "    vec4 eyeTemp = modelview_matrix * vec4(positionIn, 1);\n"
-    "    eyePosition = eyeTemp.xyz;\n"
-    "    normal = normal_matrix * normalIn;\n"
-    "    texcoord = texcoordIn;\n"
-    "    gl_Position = projection_matrix * eyeTemp;\n"
-    "}";
-}
-
-const QString &GLPhongDiffuseTextureShader::fragmentShader() const {
-    QString lights_declare;
-    QString lights_calc;
-    for (int i = 0; i < m_num_lights; i++) {
-        lights_declare += QString(
-            "uniform lowp vec3 light%1_pos;\n"
-            "uniform lowp vec3 light%1_amb;\n"
-            "uniform lowp vec3 light%1_dif;\n"
-            "uniform lowp vec3 light%1_spec;\n"
-        ).arg(i);
-
-        switch (m_lights[i].type) {
-        case Light::POINT:
-            lights_calc += QString(
-                "    L = normalize(light%1_pos - eyePosition);\n"
-            ).arg(i);
-            break;
-        case Light::SUN:
-            lights_calc += QString(
-                // must normalize sun light direction in CPU
-                // "    L = normalize(-light%1_pos);\n"
-                "    L = -light%1_pos;\n"
-            ).arg(i);
-            break;
-        }
-
-        lights_calc += QString(
-            "    Rd = max(0.0, dot(L, N));\n"
-            "    color += Rd * Kd * Td * light%1_dif;\n"
-            "    R = reflect(-L, N);\n"
-            "    Rs = pow(max(0.0, dot(V, R)), alpha);\n"
-            "    color += Rs * Ks * light%1_spec;\n"
-            "    color += Ka * light%1_amb;\n"
-        ).arg(i);
-    }
-
-    static const QString shader =
-    GLES_FRAG_SHADER_HEADER
-    "uniform sampler2D diffuse_texture;\n"
-    "uniform lowp vec3 Ka;\n"
-    "uniform lowp vec3 Kd;\n"
-    "uniform lowp vec3 Ks;\n"
-    "uniform lowp float alpha;\n"
-    + lights_declare +
-    "uniform lowp float opacity;\n"
-    "varying vec3 normal;\n"
-    "varying vec3 eyePosition;\n"
-    "varying vec2 texcoord;\n"
-    "void main() {\n"
-    "    vec3 N = normalize(normal);\n"
-    "    vec3 V = normalize(-eyePosition);\n"
-    "    vec3 L, R;\n"
-    "    float Rd, Rs;\n"
-    "    vec3 color = vec3(0.0);\n"
-    "    vec3 Td = texture2D(diffuse_texture, texcoord).rgb;"
-    + lights_calc +
-    "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
-    "}";
-
-    return shader;
-}
-
-char const *const *GLPhongDiffuseTextureShader::attributeNames() const {
-    static char const *const attr[] = { "positionIn", "normalIn", "texcoordIn", 0 };
-    return attr;
-}
-
-void GLPhongDiffuseTextureShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
-{
-    GLPhongShader::updatePerRenderNode(n, o);
-
-    GLPhongDiffuseTextureNode *pn = static_cast<GLPhongDiffuseTextureNode *>(n);
-    GLPhongDiffuseTextureNode *po = static_cast<GLPhongDiffuseTextureNode *>(o);
-    if (!po || po->texture() != pn->texture())
-        pn->texture()->bind(0);
-}
-
-void GLPhongDiffuseTextureShader::bind()
-{
-    GLPhongDiffuseTextureNode *last = static_cast<GLPhongDiffuseTextureNode *>(m_last_node);
-    if (last)
-        last->texture()->bind(0);
+    int texture_slot = 0;
+    if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
+        last->diffuseTexture()->bind(texture_slot++);
+    if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
+        last->specularTexture()->bind(texture_slot);
 
     GLShader::bind();
 }
 
-void GLPhongDiffuseTextureShader::release()
+void GLPhongShader::release()
 {
     GLShader::release();
 
-    GLPhongDiffuseTextureNode *last = static_cast<GLPhongDiffuseTextureNode *>(m_last_node);
-    if (last)
-        last->texture()->release();
+    GLPhongNode *last = static_cast<GLPhongNode *>(m_last_node);
+    if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
+        last->diffuseTexture()->release();
+    if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
+        last->specularTexture()->release();
 }
 
-
-
+const GLShader::AttributeSet &GLPhongShader::attributes()
+{
+    if (m_type == PHONG)
+        return defaultAttributes_NormalPoint3D();
+    else
+        return defaultAttributes_TexturedNormalPoint3D();
+}

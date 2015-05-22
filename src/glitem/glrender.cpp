@@ -2,7 +2,7 @@
 #include "glnode.h"
 
 GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
-    : m_root(root)
+    : m_root(root), m_shaders{}
 {
     initializeOpenGLFunctions();
     //printOpenGLInfo();
@@ -17,7 +17,6 @@ GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
         texture->setWrapMode(it.value().mode);
         m_textures[it.key()] = texture;
     }
-    initTexture(m_root);
 
     const QList<Light> &lights = loader->lights();
     // init lights
@@ -30,12 +29,14 @@ GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
     // mark all states dirty
     m_state.setDirty();
 
-    m_shaders[GLShader::PHONG] = new GLPhongShader(lights);
-    m_shaders[GLShader::PHONG_DIFFUSE_TEXTURE] = new GLPhongDiffuseTextureShader(lights);
+    initNode(m_root, lights);
 
     for (int i = 0; i < GLShader::NUM_SHADERS; i++) {
-        m_shaders[i]->initialize();
-        m_shaders[i]->loadBuffer(m_root, loader->vertexBufferSize()[i], loader->indexBufferSize()[i]);
+        if (m_shaders[i]) {
+            m_shaders[i]->initialize();
+            m_shaders[i]->loadBuffer(m_root, loader->vertexBufferSize()[i],
+                                     loader->indexBufferSize()[i]);
+        }
     }
 }
 
@@ -51,20 +52,31 @@ GLRender::~GLRender()
     }
 }
 
-void GLRender::initTexture(GLTransformNode *node)
+void GLRender::initNode(GLTransformNode *node, const QList<Light> &lights)
 {
     for (int i = 0; i < node->renderChildCount(); i++) {
-        GLRenderNode *rnode = node->renderChildAtIndex(i);
-        if (rnode->type() == GLShader::PHONG_DIFFUSE_TEXTURE) {
-            GLPhongDiffuseTextureNode *tnode = static_cast<GLPhongDiffuseTextureNode *>(rnode);
-            QMap<QString, QOpenGLTexture *>::const_iterator it = m_textures.find(tnode->imagePath());
+        GLPhongNode *pnode = static_cast<GLPhongNode *>(node->renderChildAtIndex(i));
+
+        if (!pnode->diffuseTexturePath().isEmpty()) {
+            QMap<QString, QOpenGLTexture *>::const_iterator it =
+                    m_textures.find(pnode->diffuseTexturePath());
             Q_ASSERT(it != m_textures.end());
-            tnode->setTexture(it.value());
+            pnode->setDiffuseTexture(it.value());
         }
+
+        if (!pnode->specularTexturePath().isEmpty()) {
+            QMap<QString, QOpenGLTexture *>::const_iterator it =
+                    m_textures.find(pnode->specularTexturePath());
+            Q_ASSERT(it != m_textures.end());
+            pnode->setSpecularTexture(it.value());
+        }
+
+        if (!m_shaders[pnode->type()])
+            m_shaders[pnode->type()] = new GLPhongShader(lights, pnode->type());
     }
 
     for (int i = 0; i < node->transformChildCount(); i++)
-        initTexture(node->transformChildAtIndex(i));
+        initNode(node->transformChildAtIndex(i), lights);
 }
 
 void GLRender::updateLightFinalPos()
@@ -184,7 +196,8 @@ void GLRender::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (int i = 0; i < GLShader::NUM_SHADERS; i++)
-        m_shaders[i]->render(m_root, &m_state);
+        if (m_shaders[i])
+            m_shaders[i]->render(m_root, &m_state);
     m_state.resetDirty();
 
     restoreOpenGLState();

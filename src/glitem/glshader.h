@@ -112,6 +112,8 @@ public:
     enum ShaderType {
         PHONG = 0,
         PHONG_DIFFUSE_TEXTURE,
+        PHONG_SPECULAR_TEXTURE,
+        PHONG_DIFFUSE_SPECULAR_TEXTURE,
         NUM_SHADERS
     };
 
@@ -151,7 +153,7 @@ protected:
     virtual void release();
 
 private:
-    virtual const char *vertexShader() const = 0;
+    virtual const QString &vertexShader() const = 0;
     virtual const QString &fragmentShader() const = 0;
     virtual char const *const *attributeNames() const = 0;
     virtual void updatePerRenderNode(GLRenderNode *, GLRenderNode *) {}
@@ -174,20 +176,24 @@ private:
 class GLPhongShader : public GLShader
 {
 public:
-    GLPhongShader(const QList<Light> &lights);
+    GLPhongShader(const QList<Light> &lights, ShaderType type);
     virtual ~GLPhongShader();
 
 protected:
     const QList<Light> m_lights;
     const int m_num_lights;
 
+    virtual void bind();
+    virtual void release();
+
     virtual void resolveUniforms();
-    virtual const AttributeSet &attributes() { return defaultAttributes_NormalPoint3D(); }
-    virtual ShaderType type() { return PHONG; }
+    virtual const AttributeSet &attributes();
+    virtual ShaderType type() { return m_type; }
     virtual void updatePerRenderNode(GLRenderNode *n, GLRenderNode *o);
 
 private:
     static const int m_max_lights = 5;
+    const ShaderType m_type;
     int m_id_opacity;
     int m_id_modelview_matrix;
     int m_id_projection_matrix;
@@ -200,34 +206,14 @@ private:
     int m_id_kd;
     int m_id_ks;
     int m_id_alpha;
+    int m_id_diffuse_texture;
+    int m_id_specular_texture;
 
-    virtual const char *vertexShader() const;
+    virtual const QString &vertexShader() const;
     virtual const QString &fragmentShader() const;
     virtual char const *const *attributeNames() const;
     virtual void updatePerTansformNode(GLTransformNode *);
     virtual void updateRenderState(RenderState *);
-};
-
-class GLPhongDiffuseTextureShader : public GLPhongShader
-{
-public:
-    GLPhongDiffuseTextureShader(const QList<Light> &lights);
-
-protected:
-    virtual void resolveUniforms();
-    virtual const AttributeSet &attributes() { return defaultAttributes_TexturedNormalPoint3D(); }
-    virtual ShaderType type() { return PHONG_DIFFUSE_TEXTURE; }
-
-    virtual void bind();
-    virtual void release();
-
-private:
-    int m_id_diffuse_texture;
-
-    virtual const char *vertexShader() const;
-    virtual const QString &fragmentShader() const;
-    virtual char const *const *attributeNames() const;
-    virtual void updatePerRenderNode(GLRenderNode *n, GLRenderNode *o);
 };
 
 #endif // GLSHADER_H
