@@ -1,6 +1,8 @@
 #include "glshader.h"
 #include "glnode.h"
+#include "glmaterial.h"
 #include <QOpenGLContext>
+#include <QOpenGLTexture>
 
 #define GLES_FRAG_SHADER_HEADER \
     "#ifdef GL_ES\n" \
@@ -8,9 +10,7 @@
     "#endif\n"
 
 GLShader::GLShader()
-    : m_last_node(0),
-      m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
-      m_index_buffer(QOpenGLBuffer::IndexBuffer)
+    : m_last_node(0)
 {
 }
 
@@ -36,118 +36,18 @@ void GLShader::initialize()
     m_program.release();
 }
 
-const GLShader::AttributeSet &GLShader::defaultAttributes_NormalPoint3D()
-{
-    static Attribute data[] = {
-        Attribute(0, GL_FLOAT, 3),
-        Attribute(1, GL_FLOAT, 3)
-    };
-
-    static AttributeSet attrs = {
-        2, sizeof(GLRenderNode::NormalPoint3D), data
-    };
-    return attrs;
-}
-
-const GLShader::AttributeSet &GLShader::defaultAttributes_TexturedNormalPoint3D()
-{
-    static Attribute data[] = {
-        Attribute(0, GL_FLOAT, 3),
-        Attribute(1, GL_FLOAT, 3),
-        Attribute(2, GL_FLOAT, 2)
-    };
-
-    static AttributeSet attrs = {
-        3, sizeof(GLRenderNode::TexturedNormalPoint3D), data
-    };
-    return attrs;
-}
-
-void GLShader::loadVertexBuffer(GLTransformNode *node)
-{
-    for (int i = 0; i < node->renderChildCount(); i++) {
-        GLRenderNode *rnode = node->renderChildAtIndex(i);
-        if (type() == rnode->type()) {
-            m_vertex_buffer.write(rnode->vertexOffset(), rnode->vertexData(),
-                                  rnode->vertexCount() * rnode->stride());
-            rnode->freeVertexData();
-        }
-    }
-
-    for (int i = 0; i < node->transformChildCount(); i++)
-        loadVertexBuffer(node->transformChildAtIndex(i));
-}
-
-void GLShader::loadIndexBuffer(GLTransformNode *node)
-{
-    for (int i = 0; i < node->renderChildCount(); i++) {
-        GLRenderNode *rnode = node->renderChildAtIndex(i);
-        if (type() == rnode->type()) {
-            m_index_buffer.write(rnode->indexOffset(), rnode->indexData(),
-                                 rnode->indexCount() * sizeof(ushort));
-            rnode->freeIndexData();
-        }
-    }
-
-    for (int i = 0; i < node->transformChildCount(); i++)
-        loadIndexBuffer(node->transformChildAtIndex(i));
-}
-
-void GLShader::loadBuffer(GLTransformNode *root, int vertex_buffer_size, int index_buffer_size)
-{
-    if (!vertex_buffer_size || !index_buffer_size)
-        return;
-
-    m_vertex_buffer.create();
-    m_vertex_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_vertex_buffer.bind();
-    m_vertex_buffer.allocate(vertex_buffer_size);
-    loadVertexBuffer(root);
-    m_vertex_buffer.release();
-
-    m_index_buffer.create();
-    m_index_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer.bind();
-    m_index_buffer.allocate(index_buffer_size);
-    loadIndexBuffer(root);
-    m_index_buffer.release();
-}
-
 void GLShader::bind()
 {
     m_program.bind();
-    m_vertex_buffer.bind();
-
-    int offset = 0;
-    for (int i = 0; i < attributes().count; i++) {
-        const Attribute *attr = attributes().attributes + i;
-        m_program.enableAttributeArray(attr->position);
-        m_program.setAttributeBuffer(attr->position, attr->type, offset,
-                                     attr->tuple_size, attributes().stride);
-        // now we only have float attributes
-        offset += attr->tuple_size * sizeof(float);
-    }
-
-    m_index_buffer.bind();
 }
 
 void GLShader::release()
 {
-    m_index_buffer.release();
-
-    for (int i = 0; i < attributes().count; i++) {
-        const Attribute *attr = attributes().attributes + i;
-        m_program.disableAttributeArray(attr->position);
-    }
-
     m_program.release();
 }
 
 void GLShader::render(GLTransformNode *root, RenderState *state)
 {
-    if (!m_vertex_buffer.isCreated() || !m_index_buffer.isCreated())
-        return;
-
     bind();
     updateRenderState(state);
     renderNode(root);
@@ -159,10 +59,10 @@ void GLShader::renderNode(GLTransformNode *node)
     updatePerTansformNode(node);
     for (int i = 0; i < node->renderChildCount(); i++) {
         GLRenderNode *rnode = node->renderChildAtIndex(i);
-        if (type() == rnode->type()) {
+        if (type() == rnode->material()->type()) {
             updatePerRenderNode(rnode);
-            glDrawElements(GL_TRIANGLES, rnode->indexCount(), GL_UNSIGNED_SHORT,
-                           (GLvoid *)rnode->indexOffset());
+            glDrawElements(GL_TRIANGLES, rnode->mesh()->index_count, GL_UNSIGNED_SHORT,
+                           (GLvoid *)rnode->mesh()->index_offset);
         }
     }
 
@@ -391,8 +291,8 @@ void GLPhongShader::resolveUniforms() {
 
 void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
 {
-    GLPhongNode *pn = static_cast<GLPhongNode *>(n);
-    GLPhongNode *po = static_cast<GLPhongNode *>(o);
+    GLPhongMaterial *pn = static_cast<GLPhongMaterial *>(n->material());
+    GLPhongMaterial *po = o ? static_cast<GLPhongMaterial *>(o->material()) : 0;
     if (!po || po->ka() != pn->ka())
         program()->setUniformValue(m_id_ka, pn->ka());
     if (!po || po->kd() != pn->kd())
@@ -440,7 +340,8 @@ void GLPhongShader::updateRenderState(RenderState *s)
 
 void GLPhongShader::bind()
 {
-    GLPhongNode *last = static_cast<GLPhongNode *>(m_last_node);
+    GLPhongMaterial *last =
+            m_last_node ? static_cast<GLPhongMaterial *>(m_last_node->material()) : 0;
 
     int texture_slot = 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
@@ -455,17 +356,11 @@ void GLPhongShader::release()
 {
     GLShader::release();
 
-    GLPhongNode *last = static_cast<GLPhongNode *>(m_last_node);
+    GLPhongMaterial *last =
+            m_last_node ? static_cast<GLPhongMaterial *>(m_last_node->material()) : 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
         last->diffuseTexture()->release();
     if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
         last->specularTexture()->release();
 }
 
-const GLShader::AttributeSet &GLPhongShader::attributes()
-{
-    if (m_type == PHONG)
-        return defaultAttributes_NormalPoint3D();
-    else
-        return defaultAttributes_TexturedNormalPoint3D();
-}

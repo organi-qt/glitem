@@ -26,7 +26,8 @@ HEADERS += \
     gllight.h \
     glanimatenode.h \
     ailoaderiostream.h \
-    ailoaderiosystem.h
+    ailoaderiosystem.h \
+    glmaterial.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

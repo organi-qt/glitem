@@ -3,7 +3,6 @@
 
 #include "gllight.h"
 #include <QList>
-#include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
 class GLRenderNode;
@@ -122,32 +121,13 @@ public:
     QOpenGLShaderProgram *program() { return &m_program; }
 
     void initialize();
-    void loadBuffer(GLTransformNode *root, int vertex_buffer_size, int index_buffer_size);
     void render(GLTransformNode *root, RenderState *state);
 
 protected:
-    struct Attribute {
-        int position;
-        int type;
-        int tuple_size;
-
-        Attribute(int npos, int ntype, int ntuple)
-            : position(npos), type(ntype), tuple_size(ntuple) {}
-    };
-
-    struct AttributeSet {
-        int count;
-        int stride;
-        const Attribute *attributes;
-    };
-
     GLRenderNode *m_last_node;
 
-    virtual const AttributeSet &attributes() = 0;
     virtual ShaderType type() = 0;
     virtual void resolveUniforms() = 0;
-    static const AttributeSet &defaultAttributes_NormalPoint3D();
-    static const AttributeSet &defaultAttributes_TexturedNormalPoint3D();
 
     virtual void bind();
     virtual void release();
@@ -169,8 +149,6 @@ private:
     void renderNode(GLTransformNode *);
 
     QOpenGLShaderProgram m_program;
-    QOpenGLBuffer m_vertex_buffer;
-    QOpenGLBuffer m_index_buffer;
 };
 
 class GLPhongShader : public GLShader
@@ -187,7 +165,6 @@ protected:
     virtual void release();
 
     virtual void resolveUniforms();
-    virtual const AttributeSet &attributes();
     virtual ShaderType type() { return m_type; }
     virtual void updatePerRenderNode(GLRenderNode *n, GLRenderNode *o);
 

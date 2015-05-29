@@ -4,6 +4,7 @@
 #include "glshader.h"
 #include "glloader.h"
 #include <QOpenGLFunctions>
+#include <QOpenGLBuffer>
 #include <QObject>
 
 class GLShader;
@@ -25,6 +26,7 @@ public slots:
     void render();
 
 private:
+    GLLoader *m_loader;
     GLTransformNode *m_root;
     RenderState m_state;
     QRect m_viewport;
@@ -39,11 +41,17 @@ private:
     };
     OpenGLState m_opengl_state;
 
+    QOpenGLBuffer m_vertex_buffer;
+    QOpenGLBuffer m_index_buffer;
+
     void saveOpenGLState();
     void switchOpenGlState();
     void restoreOpenGLState();
 
-    void initNode(GLTransformNode *, const QList<Light> &lights);
+    void initMaterials();
+    void initPrimitives();
+    void initNodes(GLTransformNode *node, const QList<Light> &lights);
+
     void renderNode(GLTransformNode *);
 
     void printOpenGLInfo();

@@ -2,14 +2,18 @@
 #define GLLOADER_H
 
 #include "glnode.h"
-#include "glshader.h"
 #include "gllight.h"
+#include "glshader.h"
+#include "glmaterial.h"
 #include <QString>
 #include <QMap>
 #include <QList>
+#include <QVector>
 #include <QDir>
+#include <QOpenGLTexture>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+
 
 class GLLoader
 {
@@ -17,9 +21,9 @@ public:
     GLLoader();
     bool load(const QUrl &file);
     GLTransformNode *convert();
-    int *vertexBufferSize() { return m_vertex_buffer_size; }
-    int *indexBufferSize() { return m_index_buffer_size; }
 
+    QVector<float> &vertex() { return m_vertex; }
+    QVector<ushort> &index() { return m_index; }
     const QList<Light> &lights() { return m_lights; }
 
     struct Texture {
@@ -27,29 +31,30 @@ public:
         QOpenGLTexture::WrapMode mode;
     };
 
-    const QMap<QString, Texture> &textures() { return m_textures; }
+    QMap<QString, Texture> &textures() { return m_textures; }
+    QVector<GLPhongMaterial> &materials() { return m_materials; }
+    int num_vertex() { return m_num_vertex; }
 
 private:
     QDir m_model_dir;
     Assimp::Importer m_importer;
     const aiScene *m_scene;
-    int m_vertex_buffer_size[GLShader::NUM_SHADERS];
-    int m_index_buffer_size[GLShader::NUM_SHADERS];
-    uint m_num_vertex[GLShader::NUM_SHADERS];
+    QVector<float> m_vertex;
+    QVector<ushort> m_index;
     QMap<QString, Texture> m_textures;
     QList<Light> m_lights;
+    QVector<GLPhongMaterial> m_materials;
+    QVector<GLRenderNode::Mesh> m_meshes;
+    int m_num_vertex;
 
     void assign(QVector3D &qv, const aiVector3D &av);
     void assign(QVector3D &qc, const aiColor3D &ac);
 
     GLTransformNode *convert(aiNode *node);
-    GLRenderNode *convert(aiMesh *mesh);
     void convertLights(GLTransformNode *root);
 
-    void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals);
-    void loadVertex(GLRenderNode *node, aiVector3D *vertices, aiVector3D *normals,
-                    aiVector3D *texCoords);
-    void loadIndex(GLRenderNode *node, aiFace *faces);
+    void loadPrimitive();
+    void loadMaterial();
     bool loadTexture(aiMaterial *material, aiTextureType type, QString &path);
 
     // debug prints
