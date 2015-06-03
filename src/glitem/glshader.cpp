@@ -72,10 +72,10 @@ void GLShader::renderNode(GLTransformNode *node)
 
 const int GLPhongShader::m_max_lights;
 
-GLPhongShader::GLPhongShader(const QList<Light> &lights, ShaderType type)
+GLPhongShader::GLPhongShader(const QList<Light> &lights, ShaderType type, bool hasEnvMap)
     : GLShader(), m_lights(lights),
       m_num_lights(qMin(m_max_lights, m_lights.size())),
-      m_type(type)
+      m_type(type), m_has_env_map(hasEnvMap)
 {
     Q_ASSERT(m_lights.size() > 0);
 }
@@ -174,7 +174,10 @@ const QString &GLPhongShader::fragmentShader() const
         + (m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
         "uniform sampler2D diffuse_texture;\n" : "")
         + (m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
-        "uniform sampler2D specular_texture;\n" : "") +
+        "uniform sampler2D specular_texture;\n" : "")
+        + (m_has_env_map ?
+        "uniform samplerCube env_map;\n"
+        "uniform lowp float env_alpha;\n" : "") +
         "varying vec3 normal;\n"
         "varying vec3 eyePosition;\n"
         + (m_type == PHONG ? "" :
@@ -192,7 +195,11 @@ const QString &GLPhongShader::fragmentShader() const
         "    diffuse *= texture2D(diffuse_texture, texcoord).rgb;\n" : "")
         + (m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE ?
         "    specular *= texture2D(specular_texture, texcoord).rgb;\n" : "") +
-        "    gl_FragColor = vec4(Ka * ambient + Kd * diffuse + Ks * specular, 1.0) * opacity;\n"
+        "    vec3 color = Ka * ambient + Kd * diffuse + Ks * specular;\n"
+        + (m_has_env_map ?
+        "    vec3 ER = reflect(-V, N);\n"
+        "    color = env_alpha * textureCube(env_map, ER).rgb + (1.0 - env_alpha) * color;\n" : "") +
+        "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
         "}";
     }
 
@@ -271,7 +278,20 @@ void GLPhongShader::resolveUniforms() {
         qWarning("GLPhongShader does not implement 'uniform lowp float alpha' in its shader");
     }
 
-    int texture_slot = 0;
+    if (m_has_env_map) {
+        m_id_env_alpha = program()->uniformLocation("env_alpha");
+        if (m_id_env_alpha < 0) {
+            qWarning("GLPhongShader does not implement 'uniform lowp float env_alpha' in its shader");
+        }
+
+        m_id_env_map = program()->uniformLocation("env_map");
+        if (m_id_env_map < 0) {
+            qWarning("GLPhongShader does not implement 'uniform samplerCube env_map;' in its shader");
+        }
+        program()->setUniformValue(m_id_env_map, 0);
+    }
+
+    int texture_slot = m_has_env_map ? 1 : 0;
     if (m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) {
         m_id_diffuse_texture = program()->uniformLocation("diffuse_texture");
         if (m_id_diffuse_texture < 0) {
@@ -302,7 +322,7 @@ void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
     if (!po || po->alpha() != pn->alpha())
         program()->setUniformValue(m_id_alpha, pn->alpha());
 
-    int texture_slot = 0;
+    int texture_slot = m_has_env_map ? 1 : 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) &&
         (!po || po->diffuseTexture() != pn->diffuseTexture()))
         pn->diffuseTexture()->bind(texture_slot++);
@@ -324,6 +344,8 @@ void GLPhongShader::updateRenderState(RenderState *s)
         program()->setUniformValue(m_id_projection_matrix, s->projection_matrix);
     if (s->opacity_dirty)
         program()->setUniformValue(m_id_opacity, s->opacity);
+    if (m_has_env_map && s->env_alpha_dirty)
+        program()->setUniformValue(m_id_env_alpha, s->env_alpha);
 
     Q_ASSERT(m_num_lights <= s->lights.size());
     for (int i = 0; i < m_num_lights; i++) {
@@ -343,7 +365,7 @@ void GLPhongShader::bind()
     GLPhongMaterial *last =
             m_last_node ? static_cast<GLPhongMaterial *>(m_last_node->material()) : 0;
 
-    int texture_slot = 0;
+    int texture_slot = m_has_env_map ? 1 : 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
         last->diffuseTexture()->bind(texture_slot++);
     if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)

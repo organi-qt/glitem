@@ -34,6 +34,16 @@ Window {
         model: "qrc:/model/car.dae"
         //model: "model/SWIM/Car Swim N220711.3DS"
         //asynchronous: false
+        environment: GLEnvironment {
+            top: "model/lake/lake1_up.JPG"
+            bottom: "model/lake/lake1_dn.JPG"
+            left: "model/lake/lake1_lf.JPG"
+            right: "model/lake/lake1_rt.JPG"
+            front: "model/lake/lake1_ft.JPG"
+            back: "model/lake/lake1_bk.JPG"
+            alpha: 0.3
+        }
+
 //*
         gllight: [
             GLLight {

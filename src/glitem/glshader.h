@@ -12,6 +12,7 @@ struct RenderState {
     QMatrix4x4 projection_matrix;
     float opacity;
     bool visible;
+    float env_alpha;
 
     struct RSLight {
         Light light;
@@ -25,6 +26,7 @@ struct RenderState {
 
     bool projection_matrix_dirty;
     bool opacity_dirty;
+    bool env_alpha_dirty;
 
     void setProjectionMatrix(const QMatrix4x4 &value) {
         if (projection_matrix != value) {
@@ -37,6 +39,13 @@ struct RenderState {
         if (opacity != value) {
             opacity = value;
             opacity_dirty = true;
+        }
+    }
+
+    void setEnvAlpha(float value) {
+        if (env_alpha != value) {
+            env_alpha = value;
+            env_alpha_dirty = true;
         }
     }
 
@@ -85,6 +94,7 @@ struct RenderState {
     void setDirty() {
         projection_matrix_dirty = true;
         opacity_dirty = true;
+        env_alpha_dirty = true;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].pos_dirty = true;
             lights[i].amb_dirty = true;
@@ -96,6 +106,7 @@ struct RenderState {
     void resetDirty() {
         projection_matrix_dirty = false;
         opacity_dirty = false;
+        env_alpha_dirty = false;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].pos_dirty = false;
             lights[i].amb_dirty = false;
@@ -154,7 +165,7 @@ private:
 class GLPhongShader : public GLShader
 {
 public:
-    GLPhongShader(const QList<Light> &lights, ShaderType type);
+    GLPhongShader(const QList<Light> &lights, ShaderType type, bool hasEnvMap);
     virtual ~GLPhongShader();
 
 protected:
@@ -185,6 +196,9 @@ private:
     int m_id_alpha;
     int m_id_diffuse_texture;
     int m_id_specular_texture;
+    int m_id_env_alpha;
+    int m_id_env_map;
+    bool m_has_env_map;
 
     virtual const QString &vertexShader() const;
     virtual const QString &fragmentShader() const;

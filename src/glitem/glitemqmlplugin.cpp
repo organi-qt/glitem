@@ -1,9 +1,9 @@
 #include "glitemqmlplugin.h"
 #include "glitem.h"
 
+
 void GLItemQmlPlugin::registerTypes(const char *uri)
 {
-    Q_UNUSED(uri);
     Q_ASSERT(uri == QLatin1String("GLItem"));
     qmlRegisterType<GLItem>("GLItem", 1, 0, "GLItem");
     qmlRegisterType<GLScale>("GLItem", 1, 0, "GLScale");
@@ -12,4 +12,5 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
     qmlRegisterType<GLAnimateNode>("GLItem", 1, 0, "GLAnimateNode");
     qmlRegisterType<GLTransform>();
     qmlRegisterType<GLLight>("GLItem", 1, 0, "GLLight");
+    qmlRegisterType<GLEnvironment>("GLItem", 1, 0, "GLEnvironment");
 }

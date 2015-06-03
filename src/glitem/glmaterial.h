@@ -11,6 +11,11 @@ class GLMaterial
 {
 public:
     virtual GLShader::ShaderType type() const = 0;
+    const QString &name() const { return m_name; }
+    void setName(const QString &nname) { m_name = nname; }
+
+private:
+    QString m_name;
 };
 
 class GLPhongMaterial : public GLMaterial {

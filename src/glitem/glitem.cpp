@@ -2,10 +2,21 @@
 #include <QThread>
 #include "glitem.h"
 
-GLItem::GLItem()
-    : m_render(0), m_root(0), m_status(Null), m_asynchronous(true)
+
+GLItem::GLItem(QQuickItem *parent)
+    : QQuickItem(parent), m_render(0), m_root(0),
+      m_status(Null), m_asynchronous(true),
+      m_environment(0), m_envparam(0)
 {
     connect(this, &GLItem::opacityChanged, this, &GLItem::updateWindow);
+}
+
+GLItem::~GLItem()
+{
+    if (m_envparam) {
+        delete m_envparam;
+        m_envparam = 0;
+    }
 }
 
 void GLItem::sync()
@@ -14,7 +25,12 @@ void GLItem::sync()
         return;
 
     if (!m_render) {
-        m_render = new GLRender(m_root, &m_loader);
+        m_render = new GLRender(m_root, &m_loader, m_envparam);
+        if (m_envparam) {
+            delete m_envparam;
+            m_envparam = 0;
+        }
+
         connect(window(), &QQuickWindow::beforeRendering, m_render, &GLRender::render, Qt::DirectConnection);
     }
 
@@ -74,6 +90,41 @@ void GLItem::setAsynchronous(bool value)
     }
 }
 
+void GLItem::setEnvironment(GLEnvironment *value)
+{
+    if (m_environment != value) {
+        m_environment = value;
+        emit environmentChanged();
+    }
+}
+
+bool GLItem::loadEnvironmentImage(const QUrl &url, QImage &image)
+{
+    if (!url.isEmpty()) {
+        QString path;
+        if (url.scheme() == "file")
+            path = url.toLocalFile();
+        else if (url.scheme() == "qrc")
+            path = ':' + url.path();
+        else {
+            qWarning() << "invalide environment texture path: " << url;
+            return false;
+        }
+
+        if (image.load(path)) {
+            Q_ASSERT(image.width() == image.height());
+            Q_ASSERT(!m_envparam->width || m_envparam->width == image.width());
+            Q_ASSERT(!m_envparam->height || m_envparam->height == image.height());
+
+            image = image.convertToFormat(QImage::Format_RGB888);
+            m_envparam->width = image.width();
+            m_envparam->height = image.height();
+            return true;
+        }
+    }
+    return false;
+}
+
 void GLItem::load()
 {
     m_status = Loading;
@@ -84,6 +135,28 @@ void GLItem::load()
             if (!bindAnimateNode(m_root, node))
                 qWarning() << "no node find in model named: " << node->name();
         }
+
+        if (m_environment) {
+            bool hasEnv = false;
+            m_envparam = new EnvParam;
+            m_envparam->width = m_envparam->height = 0;
+            m_envparam->alpha = m_environment->alpha();
+
+            if (m_envparam->alpha > 0 && m_envparam->alpha < 1.0) {
+                hasEnv |= loadEnvironmentImage(m_environment->top(), m_envparam->top);
+                hasEnv |= loadEnvironmentImage(m_environment->bottom(), m_envparam->bottom);
+                hasEnv |= loadEnvironmentImage(m_environment->left(), m_envparam->left);
+                hasEnv |= loadEnvironmentImage(m_environment->right(), m_envparam->right);
+                hasEnv |= loadEnvironmentImage(m_environment->front(), m_envparam->front);
+                hasEnv |= loadEnvironmentImage(m_environment->back(), m_envparam->back);
+            }
+
+            if (!hasEnv) {
+                delete m_envparam;
+                m_envparam = 0;
+            }
+        }
+
         m_status = Ready;
         if (window()) {
             connect(window(), &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);

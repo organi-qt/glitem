@@ -9,12 +9,13 @@
 
 class GLShader;
 class GLTransformNode;
+struct EnvParam;
 
 class GLRender : public QObject, protected QOpenGLFunctions
 {
     Q_OBJECT
 public:
-    GLRender(GLTransformNode *root, GLLoader *loader);
+    GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env);
     ~GLRender();
 
     RenderState *state() { return &m_state; }
@@ -32,6 +33,7 @@ private:
     QRect m_viewport;
     GLShader *m_shaders[GLShader::NUM_SHADERS];
     QMap<QString, QOpenGLTexture *> m_textures;
+    QOpenGLTexture *m_envmap;
 
     struct OpenGLState {
         bool depth_mask;
@@ -51,6 +53,7 @@ private:
     void initMaterials();
     void initPrimitives();
     void initNodes(GLTransformNode *node, const QList<Light> &lights);
+    bool initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size);
 
     void renderNode(GLTransformNode *);
 

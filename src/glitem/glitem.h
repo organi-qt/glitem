@@ -6,6 +6,8 @@
 #include "glrender.h"
 #include "gltransform.h"
 #include "glanimatenode.h"
+#include "glenvironment.h"
+
 
 class GLItem : public QQuickItem
 {
@@ -15,9 +17,11 @@ class GLItem : public QQuickItem
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
     Q_PROPERTY(Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(bool asynchronous READ asynchronous WRITE setAsynchronous NOTIFY asynchronousChanged)
+    Q_PROPERTY(GLEnvironment *environment READ environment WRITE setEnvironment NOTIFY environmentChanged)
     Q_CLASSINFO("DefaultProperty", "glnode")
 public:
-    GLItem();
+    GLItem(QQuickItem *parent = 0);
+    ~GLItem();
 
     QQmlListProperty<GLAnimateNode> glnode();
     QQmlListProperty<GLLight> gllight();
@@ -31,6 +35,9 @@ public:
     bool asynchronous() const { return m_asynchronous; }
     void setAsynchronous(bool value);
 
+    GLEnvironment *environment() const { return m_environment; }
+    void setEnvironment(GLEnvironment *value);
+
     void componentComplete();
     void load();
 
@@ -38,6 +45,7 @@ signals:
     void modelChanged();
     void statusChanged();
     void asynchronousChanged();
+    void environmentChanged();
 
 public slots:
     void sync();
@@ -51,6 +59,10 @@ private:
     GLTransformNode *m_root;
     Status m_status;
     bool m_asynchronous;
+    GLEnvironment *m_environment;
+    EnvParam *m_envparam;
+
+    bool loadEnvironmentImage(const QUrl &url, QImage &image);
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);
     static void glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *);

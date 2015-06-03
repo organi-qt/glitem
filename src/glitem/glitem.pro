@@ -13,7 +13,8 @@ SOURCES += \
     glanimatenode.cpp \
     gllight.cpp \
     ailoaderiostream.cpp \
-    ailoaderiosystem.cpp
+    ailoaderiosystem.cpp \
+    glenvironment.cpp
 
 HEADERS += \
     glshader.h \
@@ -27,7 +28,8 @@ HEADERS += \
     glanimatenode.h \
     ailoaderiostream.h \
     ailoaderiosystem.h \
-    glmaterial.h
+    glmaterial.h \
+    glenvironment.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

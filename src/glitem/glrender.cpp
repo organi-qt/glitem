@@ -1,8 +1,9 @@
 #include "glrender.h"
 #include "glnode.h"
+#include "glenvironment.h"
 
-GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
-    : m_loader(loader), m_root(root), m_shaders{},
+GLRender::GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env)
+    : m_loader(loader), m_root(root), m_shaders{}, m_envmap(0),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
       m_index_buffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -15,6 +16,33 @@ GLRender::GLRender(GLTransformNode *root, GLLoader *loader)
         RenderState::RSLight light;
         light.light = lights[i];
         m_state.lights.append(light);
+    }
+
+    if (env) {
+        m_envmap = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
+        m_envmap->setSize(env->width, env->height);
+        if (QOpenGLContext::currentContext()->isOpenGLES())
+            m_envmap->setFormat(QOpenGLTexture::RGBFormat);
+        else
+            m_envmap->setFormat(QOpenGLTexture::RGB32F);
+        m_envmap->setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+        m_envmap->setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+        //m_envmap->setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+        m_envmap->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+        m_envmap->allocateStorage();
+
+        QSize size(env->width, env->height);
+        if (!initEnvTexture(QOpenGLTexture::CubeMapPositiveX, env->right, size) ||
+            !initEnvTexture(QOpenGLTexture::CubeMapNegativeX, env->left, size) ||
+            !initEnvTexture(QOpenGLTexture::CubeMapPositiveY, env->top, size) ||
+            !initEnvTexture(QOpenGLTexture::CubeMapNegativeY, env->bottom, size) ||
+            !initEnvTexture(QOpenGLTexture::CubeMapPositiveZ, env->back, size) ||
+            !initEnvTexture(QOpenGLTexture::CubeMapNegativeZ, env->front, size)) {
+            delete m_envmap;
+            m_envmap = 0;
+        }
+
+        m_state.setEnvAlpha(env->alpha);
     }
 
     // mark all states dirty
@@ -39,6 +67,29 @@ GLRender::~GLRender()
         it.next();
         delete it.value();
     }
+
+    if (m_envmap)
+        delete m_envmap;
+}
+
+bool GLRender::initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size)
+{
+    if (image.isNull()) {
+        static QByteArray data(size.width() * size.height() * 3, 0);
+        m_envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+                          QOpenGLTexture::UInt8, data.constData());
+    }
+    else
+        m_envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+                          QOpenGLTexture::UInt8, image.constBits());
+
+    int err = glGetError();
+    if (err) {
+        qWarning() << "environment map texture upload fail: " << err;
+        return false;
+    }
+    else
+        return true;
 }
 
 void GLRender::initMaterials()
@@ -47,7 +98,7 @@ void GLRender::initMaterials()
     QMapIterator<QString, GLLoader::Texture> it(textures);
     while (it.hasNext()) {
         it.next();
-        QOpenGLTexture *texture = new QOpenGLTexture(it.value().image.mirrored());
+        QOpenGLTexture *texture = new QOpenGLTexture(it.value().image);
         texture->setMinificationFilter(QOpenGLTexture::Nearest);
         texture->setMagnificationFilter(QOpenGLTexture::Linear);
         texture->setWrapMode(it.value().mode);
@@ -97,7 +148,7 @@ void GLRender::initNodes(GLTransformNode *node, const QList<Light> &lights)
     for (int i = 0; i < node->renderChildCount(); i++) {
         GLShader::ShaderType type = node->renderChildAtIndex(i)->material()->type();
         if (!m_shaders[type])
-            m_shaders[type] = new GLPhongShader(lights, type);
+            m_shaders[type] = new GLPhongShader(lights, type, m_envmap ? true : false);
     }
 
     for (int i = 0; i < node->transformChildCount(); i++)
@@ -220,6 +271,9 @@ void GLRender::render()
     glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    if (m_envmap)
+        m_envmap->bind(0);
+
     m_vertex_buffer.bind();
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), 0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float),
@@ -260,6 +314,9 @@ void GLRender::render()
     glDisableVertexAttribArray(2);
     m_index_buffer.release();
     m_vertex_buffer.release();
+
+    if (m_envmap)
+        m_envmap->release();
 
     restoreOpenGLState();
 }

@@ -166,6 +166,10 @@ void GLLoader::loadMaterial()
                 type = GLShader::PHONG_DIFFUSE_SPECULAR_TEXTURE;
         }
 
+        aiString name;
+        if (material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS)
+            m_materials[i].setName(name.C_Str());
+
         m_materials[i].setType(type);
         m_materials[i].setMaterial(
                 QVector3D(amb.r, amb.g, amb.b),
@@ -337,6 +341,7 @@ bool GLLoader::loadTexture(aiMaterial *material, aiTextureType type, QString &pa
         else {
             Texture texture;
             if (texture.image.load(m_model_dir.filePath(path))) {
+                texture.image = texture.image.mirrored();
                 texture.mode = wmode;
                 m_textures[path] = texture;
                 return true;
