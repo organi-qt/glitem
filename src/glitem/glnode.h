@@ -5,7 +5,7 @@
 #include <QList>
 #include <QMatrix4x4>
 
-class GLMaterial;
+class Material;
 
 class GLRenderNode {
 public:
@@ -14,16 +14,16 @@ public:
         int index_count;
     };
 
-    GLRenderNode(Mesh *nmesh, GLMaterial *nmaterial)
+    GLRenderNode(Mesh *nmesh, Material *nmaterial)
         : m_mesh(nmesh), m_material(nmaterial)
     {}
 
     Mesh *mesh() { return m_mesh; }
-    GLMaterial *material() { return m_material; }
+    Material *material() { return m_material; }
 
 private:
     Mesh *m_mesh;
-    GLMaterial *m_material;
+    Material *m_material;
 };
 
 class GLTransformNode

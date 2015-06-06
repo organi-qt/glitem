@@ -1,6 +1,6 @@
 #include "glshader.h"
 #include "glnode.h"
-#include "glmaterial.h"
+#include "material.h"
 #include <QOpenGLContext>
 #include <QOpenGLTexture>
 
@@ -311,8 +311,8 @@ void GLPhongShader::resolveUniforms() {
 
 void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
 {
-    GLPhongMaterial *pn = static_cast<GLPhongMaterial *>(n->material());
-    GLPhongMaterial *po = o ? static_cast<GLPhongMaterial *>(o->material()) : 0;
+    PhongMaterial *pn = static_cast<PhongMaterial *>(n->material());
+    PhongMaterial *po = o ? static_cast<PhongMaterial *>(o->material()) : 0;
     if (!po || po->ka() != pn->ka())
         program()->setUniformValue(m_id_ka, pn->ka());
     if (!po || po->kd() != pn->kd())
@@ -362,8 +362,8 @@ void GLPhongShader::updateRenderState(RenderState *s)
 
 void GLPhongShader::bind()
 {
-    GLPhongMaterial *last =
-            m_last_node ? static_cast<GLPhongMaterial *>(m_last_node->material()) : 0;
+    PhongMaterial *last =
+            m_last_node ? static_cast<PhongMaterial *>(m_last_node->material()) : 0;
 
     int texture_slot = m_has_env_map ? 1 : 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
@@ -378,8 +378,8 @@ void GLPhongShader::release()
 {
     GLShader::release();
 
-    GLPhongMaterial *last =
-            m_last_node ? static_cast<GLPhongMaterial *>(m_last_node->material()) : 0;
+    PhongMaterial *last =
+            m_last_node ? static_cast<PhongMaterial *>(m_last_node->material()) : 0;
     if ((m_type == PHONG_DIFFUSE_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)
         last->diffuseTexture()->release();
     if ((m_type == PHONG_SPECULAR_TEXTURE || m_type == PHONG_DIFFUSE_SPECULAR_TEXTURE) && last)

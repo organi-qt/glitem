@@ -106,7 +106,7 @@ void GLRender::initMaterials()
     }
     textures.clear();
 
-    QVector<GLPhongMaterial> &materials = m_loader->materials();
+    QVector<PhongMaterial> &materials = m_loader->materials();
     for (int i = 0; i < materials.size(); i++) {
         if (!materials[i].diffuseTexturePath().isEmpty()) {
             QMap<QString, QOpenGLTexture *>::const_iterator it =

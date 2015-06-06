@@ -14,7 +14,9 @@ SOURCES += \
     gllight.cpp \
     ailoaderiostream.cpp \
     ailoaderiosystem.cpp \
-    glenvironment.cpp
+    glenvironment.cpp \
+    glgeometry.cpp \
+    glmaterial.cpp
 
 HEADERS += \
     glshader.h \
@@ -29,7 +31,9 @@ HEADERS += \
     ailoaderiostream.h \
     ailoaderiosystem.h \
     glmaterial.h \
-    glenvironment.h
+    glenvironment.h \
+    glgeometry.h \
+    material.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

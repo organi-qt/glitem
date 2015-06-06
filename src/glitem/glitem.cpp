@@ -135,36 +135,44 @@ void GLItem::load()
             if (!bindAnimateNode(m_root, node))
                 qWarning() << "no node find in model named: " << node->name();
         }
+    }
 
-        if (m_environment) {
-            bool hasEnv = false;
-            m_envparam = new EnvParam;
-            m_envparam->width = m_envparam->height = 0;
-            m_envparam->alpha = m_environment->alpha();
+    for (int i = 0; i < m_glgeometrys.size(); i++)
+        m_glgeometrys[i]->load();
 
-            if (m_envparam->alpha > 0 && m_envparam->alpha < 1.0) {
-                hasEnv |= loadEnvironmentImage(m_environment->top(), m_envparam->top);
-                hasEnv |= loadEnvironmentImage(m_environment->bottom(), m_envparam->bottom);
-                hasEnv |= loadEnvironmentImage(m_environment->left(), m_envparam->left);
-                hasEnv |= loadEnvironmentImage(m_environment->right(), m_envparam->right);
-                hasEnv |= loadEnvironmentImage(m_environment->front(), m_envparam->front);
-                hasEnv |= loadEnvironmentImage(m_environment->back(), m_envparam->back);
-            }
+    if (!m_root) {
+        m_status = Error;
+        emit statusChanged();
+        return;
+    }
 
-            if (!hasEnv) {
-                delete m_envparam;
-                m_envparam = 0;
-            }
+    if (m_environment) {
+        bool hasEnv = false;
+        m_envparam = new EnvParam;
+        m_envparam->width = m_envparam->height = 0;
+        m_envparam->alpha = m_environment->alpha();
+
+        if (m_envparam->alpha > 0 && m_envparam->alpha < 1.0) {
+            hasEnv |= loadEnvironmentImage(m_environment->top(), m_envparam->top);
+            hasEnv |= loadEnvironmentImage(m_environment->bottom(), m_envparam->bottom);
+            hasEnv |= loadEnvironmentImage(m_environment->left(), m_envparam->left);
+            hasEnv |= loadEnvironmentImage(m_environment->right(), m_envparam->right);
+            hasEnv |= loadEnvironmentImage(m_environment->front(), m_envparam->front);
+            hasEnv |= loadEnvironmentImage(m_environment->back(), m_envparam->back);
         }
 
-        m_status = Ready;
-        if (window()) {
-            connect(window(), &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);
-            connect(window(), &QQuickWindow::sceneGraphInvalidated, this, &GLItem::cleanup, Qt::DirectConnection);
+        if (!hasEnv) {
+            delete m_envparam;
+            m_envparam = 0;
         }
     }
-    else
-        m_status = Error;
+
+    if (window()) {
+        connect(window(), &QQuickWindow::beforeSynchronizing, this, &GLItem::sync, Qt::DirectConnection);
+        connect(window(), &QQuickWindow::sceneGraphInvalidated, this, &GLItem::cleanup, Qt::DirectConnection);
+    }
+
+    m_status = Ready;
     emit statusChanged();
 }
 
@@ -186,7 +194,7 @@ void GLItem::componentComplete()
 {
     QQuickItem::componentComplete();
 
-    if (m_model.isValid()) {
+    if (m_model.isValid() || !m_glgeometrys.isEmpty()) {
         if (m_asynchronous) {
             QThread *t = new AsyncLoadThread(this);
             connect(t, &QThread::finished, t, &QObject::deleteLater);
@@ -325,7 +333,6 @@ GLLight *GLItem::gllight_at(QQmlListProperty<GLLight> *list, int idx)
 
 void GLItem::gllight_clear(QQmlListProperty<GLLight> *list)
 {
-
     GLItem *object = qobject_cast<GLItem *>(list->object);
     if (object) {
         object->m_gllights.clear();
@@ -333,5 +340,107 @@ void GLItem::gllight_clear(QQmlListProperty<GLLight> *list)
     }
     else
         qWarning()<<"Warning: could not find GLItem to clear of lights";
+}
+
+QQmlListProperty<GLGeometry> GLItem::glgeometry()
+{
+    return QQmlListProperty<GLGeometry>(this, 0, glgeometry_append, glgeometry_count, glgeometry_at, glgeometry_clear);
+}
+
+int GLItem::glgeometry_count(QQmlListProperty<GLGeometry> *list)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_glgeometrys.count();
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for geometry count.";
+        return 0;
+    }
+}
+
+void GLItem::glgeometry_append(QQmlListProperty<GLGeometry> *list, GLGeometry *item)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    QList<GLGeometry *> *pgeometrys;
+    if (object) {
+        pgeometrys = &object->m_glgeometrys;
+
+        if (!pgeometrys->contains(item))
+            pgeometrys->append(item);
+    }
+    else
+        qWarning()<<"Warning: could not find GLItem to add geometry to.";
+}
+
+GLGeometry *GLItem::glgeometry_at(QQmlListProperty<GLGeometry> *list, int idx)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_glgeometrys.at(idx);
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for geometries";
+        return 0;
+    }
+    return 0;
+}
+
+void GLItem::glgeometry_clear(QQmlListProperty<GLGeometry> *list)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object)
+        object->m_glgeometrys.clear();
+    else
+        qWarning()<<"Warning: could not find GLItem to clear of geometries";
+}
+
+QQmlListProperty<GLMaterial> GLItem::glmaterial()
+{
+    return QQmlListProperty<GLMaterial>(this, 0, glmaterial_append, glmaterial_count, glmaterial_at, glmaterial_clear);
+}
+
+int GLItem::glmaterial_count(QQmlListProperty<GLMaterial> *list)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_glmaterials.count();
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for material count.";
+        return 0;
+    }
+}
+
+void GLItem::glmaterial_append(QQmlListProperty<GLMaterial> *list, GLMaterial *item)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    QList<GLMaterial *> *pmaterials;
+    if (object) {
+        pmaterials = &object->m_glmaterials;
+
+        if (!pmaterials->contains(item))
+            pmaterials->append(item);
+    }
+    else
+        qWarning()<<"Warning: could not find GLItem to add material to.";
+}
+
+GLMaterial *GLItem::glmaterial_at(QQmlListProperty<GLMaterial> *list, int idx)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object) {
+        return object->m_glmaterials.at(idx);
+    } else {
+        qWarning()<<"Warning: could not find GLItem to query for materials";
+        return 0;
+    }
+    return 0;
+}
+
+void GLItem::glmaterial_clear(QQmlListProperty<GLMaterial> *list)
+{
+    GLItem *object = qobject_cast<GLItem *>(list->object);
+    if (object)
+        object->m_glmaterials.clear();
+    else
+        qWarning()<<"Warning: could not find GLItem to clear of materials";
 }
 

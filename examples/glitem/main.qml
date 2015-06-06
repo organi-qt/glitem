@@ -34,6 +34,7 @@ Window {
         model: "qrc:/model/car.dae"
         //model: "model/SWIM/Car Swim N220711.3DS"
         //asynchronous: false
+/*
         environment: GLEnvironment {
             top: "model/lake/lake1_up.JPG"
             bottom: "model/lake/lake1_dn.JPG"
@@ -43,7 +44,7 @@ Window {
             back: "model/lake/lake1_bk.JPG"
             alpha: 0.3
         }
-
+//*/
 //*
         gllight: [
             GLLight {

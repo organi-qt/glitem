@@ -4,7 +4,7 @@
 #include "glnode.h"
 #include "gllight.h"
 #include "glshader.h"
-#include "glmaterial.h"
+#include "material.h"
 #include <QString>
 #include <QMap>
 #include <QList>
@@ -32,7 +32,7 @@ public:
     };
 
     QMap<QString, Texture> &textures() { return m_textures; }
-    QVector<GLPhongMaterial> &materials() { return m_materials; }
+    QVector<PhongMaterial> &materials() { return m_materials; }
     int num_vertex() { return m_num_vertex; }
 
 private:
@@ -43,7 +43,7 @@ private:
     QVector<ushort> m_index;
     QMap<QString, Texture> m_textures;
     QList<Light> m_lights;
-    QVector<GLPhongMaterial> m_materials;
+    QVector<PhongMaterial> m_materials;
     QVector<GLRenderNode::Mesh> m_meshes;
     int m_num_vertex;
 
