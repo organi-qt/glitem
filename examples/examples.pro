@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
 
-SUBDIRS += glitem
+SUBDIRS += glitem carvisualizer

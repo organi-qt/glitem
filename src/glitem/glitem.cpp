@@ -130,7 +130,7 @@ void GLItem::load()
     m_status = Loading;
     emit statusChanged();
 
-    if (m_loader.load(m_model) && (m_root = m_loader.convert())) {
+    if (m_model.isValid() && m_loader.load(m_model) && (m_root = m_loader.convert())) {
         foreach (GLAnimateNode *node, m_glnodes) {
             if (!bindAnimateNode(m_root, node))
                 qWarning() << "no node find in model named: " << node->name();

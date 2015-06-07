@@ -8,7 +8,64 @@ GLMaterial::GLMaterial(QObject *parent)
 
 
 GLPhongMaterial::GLPhongMaterial(QObject *parent)
-    : GLMaterial(parent)
+    : GLMaterial(parent), m_color(255, 255, 255), m_specular(17, 17, 17),
+      m_shininess(30), m_env_map(false), m_reflectivity(1)
 {
 
+}
+
+void GLPhongMaterial::setColor(const QColor &value)
+{
+    if (m_color != value) {
+        m_color = value;
+        emit colorChanged();
+    }
+}
+
+void GLPhongMaterial::setSpecular(const QColor &value)
+{
+    if (m_specular != value) {
+        m_specular = value;
+        emit specularChanged();
+    }
+}
+
+void GLPhongMaterial::setShininess(qreal value)
+{
+    if (m_shininess != value) {
+        m_shininess = value;
+        emit shininessChanged();
+    }
+}
+
+void GLPhongMaterial::setMap(const QUrl &value)
+{
+    if (m_map != value) {
+        m_map = value;
+        emit mapChanged();
+    }
+}
+
+void GLPhongMaterial::setSpecularMap(const QUrl &value)
+{
+    if (m_specular_map != value) {
+        m_specular_map = value;
+        emit specularMapChanged();
+    }
+}
+
+void GLPhongMaterial::setEnvMap(bool value)
+{
+    if (m_env_map != value) {
+        m_env_map = value;
+        emit envMapChanged();
+    }
+}
+
+void GLPhongMaterial::setReflectivity(qreal value)
+{
+    if (m_reflectivity != value) {
+        m_reflectivity = value;
+        emit reflectivityChanged();
+    }
 }
