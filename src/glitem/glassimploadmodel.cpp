@@ -1,46 +1,64 @@
-#include "glloader.h"
+#include "glassimploadmodel.h"
+#include "glnode.h"
+#include "material.h"
+#include "light.h"
 #include "ailoaderiosystem.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <QOpenGLTexture>
 #include <QDebug>
-#include <QFile>
 
-GLLoader::GLLoader()
-    : m_scene(0)
+GLAssimpLoadModel::GLAssimpLoadModel(QObject *parent)
+    : GLModel(parent), m_scene(0)
 {
-    m_importer.SetIOHandler(new AiLoaderIOSystem());
+
 }
 
-bool GLLoader::load(const QUrl &file)
+GLAssimpLoadModel::~GLAssimpLoadModel()
+{
+
+}
+
+void GLAssimpLoadModel::setFile(const QUrl &value)
+{
+    if (m_file != value) {
+        m_file = value;
+        emit fileChanged();
+    }
+}
+
+bool GLAssimpLoadModel::load()
 {
     QString path;
-    if (file.scheme() == "file")
-        path = file.toLocalFile();
-    else if (file.scheme() == "qrc")
-        path = ':' + file.path();
+    if (m_file.scheme() == "file")
+        path = m_file.toLocalFile();
+    else if (m_file.scheme() == "qrc")
+        path = ':' + m_file.path();
     else {
-        qWarning() << "invalide model path: " << file;
+        qWarning() << "invalide model path: " << m_file;
         return false;
     }
 
-    m_scene = m_importer.ReadFile(path.toStdString(),
+    Assimp::Importer importer;
+    importer.SetIOHandler(new AiLoaderIOSystem());
+
+    m_scene = importer.ReadFile(path.toStdString(),
                        aiProcess_CalcTangentSpace       |
                        aiProcess_Triangulate            |
                        aiProcess_JoinIdenticalVertices  |
                        aiProcess_SortByPType);
     if (!m_scene) {
-        qWarning() << "load file " << file << " fail: " << m_importer.GetErrorString();
+        qWarning() << "load file " << m_file << " fail: " << importer.GetErrorString();
         return false;
     }
 
     if (m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-        qWarning() << "file " << file << " with incomplete scene";
+        qWarning() << "file " << m_file << " with incomplete scene";
         m_scene = NULL;
-        m_importer.FreeScene();
         return false;
     }
 
-    m_model_dir.setPath(path);
-    m_model_dir.cdUp();
 /*
     if (m_scene->HasCameras())
         for (uint i = 0; i < m_scene->mNumCameras; i++)
@@ -58,77 +76,94 @@ bool GLLoader::load(const QUrl &file)
 //*/
     //printNode(m_scene->mRootNode, "  ");
 
+    m_model_dir.setPath(path);
+    m_model_dir.cdUp();
+
+    loadPrimitive();
+    loadMaterial();
+    m_root = loadNode(m_scene->mRootNode);
+    loadLight();
+
+    m_scene = NULL;
     return true;
 }
 
-void GLLoader::loadPrimitive()
+void GLAssimpLoadModel::loadPrimitive()
 {
-    uint np = 0, ntp = 0, nf = 0;
+    uint np = 0, ntp = 0, nf = 0, ntf = 0;
     for (uint i = 0; i < m_scene->mNumMeshes; i++) {
         aiMesh *mesh = m_scene->mMeshes[i];
         if (mesh->HasNormals()) {
-            if (mesh->HasTextureCoords(0))
+            if (mesh->HasTextureCoords(0)) {
                 ntp += mesh->mNumVertices;
-            else
+                ntf += mesh->mNumFaces;
+            }
+            else {
                 np += mesh->mNumVertices;
-            nf += mesh->mNumFaces;
+                nf += mesh->mNumFaces;
+            }
         }
     }
 
-    m_num_vertex = np + ntp;
-    if (m_num_vertex >= USHRT_MAX)
-        qFatal("model with too many vertex");
+    m_vertex.reserve(np * 6);
+    m_index.reserve(nf * 3);
+    m_textured_vertex.reserve(ntp * 6);
+    m_textured_vertex_uv.reserve(ntp * 2);
+    m_textured_index.reserve(ntf * 3);
 
-    m_vertex.resize(np * 6 + ntp * 8);
-    m_index.resize(nf * 3);
     m_meshes.resize(m_scene->mNumMeshes);
 
-    int poff = ntp * 6, tpoff = 0, toff = (np + ntp) * 6, ioff = 0;
     for (uint i = 0; i < m_scene->mNumMeshes; i++) {
         aiMesh *mesh = m_scene->mMeshes[i];
         Q_ASSERT(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE);
         Q_ASSERT(mesh->HasNormals());
 
-        int *off = &poff;
+        QList<float> *va;
+        QList<ushort> *ia;
         if (mesh->HasTextureCoords(0)) {
-            off = &tpoff;
+            m_meshes[i].type = Mesh::TEXTURED;
+            va = &m_textured_vertex;
+            ia = &m_textured_index;
+
             for (uint j = 0; j < mesh->mNumVertices; j++) {
-                m_vertex[toff] = mesh->mTextureCoords[0][j].x;
-                m_vertex[toff + 1] = mesh->mTextureCoords[0][j].y;
-                toff += 2;
+                m_textured_vertex_uv.append(mesh->mTextureCoords[0][j].x);
+                m_textured_vertex_uv.append(mesh->mTextureCoords[0][j].y);
             }
         }
-
-        uint ibase = *off / 6;
-        for (uint j = 0; j < mesh->mNumVertices; j++) {
-            m_vertex[*off + 0] = mesh->mVertices[j].x;
-            m_vertex[*off + 1] = mesh->mVertices[j].y;
-            m_vertex[*off + 2] = mesh->mVertices[j].z;
-
-            m_vertex[*off + 3] = mesh->mNormals[j].x;
-            m_vertex[*off + 4] = mesh->mNormals[j].y;
-            m_vertex[*off + 5] = mesh->mNormals[j].z;
-
-            *off += 6;
+        else {
+            m_meshes[i].type = Mesh::NORMAL;
+            va = &m_vertex;
+            ia = &m_index;
         }
 
-        m_meshes[i].index_offset = ioff * sizeof(ushort);
+        int ibase = va->size() / 6;
+        m_meshes[i].index_offset = ia->size() * sizeof(ushort);
         m_meshes[i].index_count = mesh->mNumFaces * 3;
+
+        for (uint j = 0; j < mesh->mNumVertices; j++) {
+            va->append(mesh->mVertices[j].x);
+            va->append(mesh->mVertices[j].y);
+            va->append(mesh->mVertices[j].z);
+
+            va->append(mesh->mNormals[j].x);
+            va->append(mesh->mNormals[j].y);
+            va->append(mesh->mNormals[j].z);
+        }
 
         aiFace *faces = mesh->mFaces;
         for (uint j = 0; j < mesh->mNumFaces; j++) {
             Q_ASSERT(faces[j].mNumIndices == 3);
-            m_index[ioff + 0] = faces[j].mIndices[0] + ibase;
-            m_index[ioff + 1] = faces[j].mIndices[1] + ibase;
-            m_index[ioff + 2] = faces[j].mIndices[2] + ibase;
-            ioff += 3;
+            ia->append(faces[j].mIndices[0] + ibase);
+            ia->append(faces[j].mIndices[1] + ibase);
+            ia->append(faces[j].mIndices[2] + ibase);
         }
     }
 }
 
-void GLLoader::loadMaterial()
+void GLAssimpLoadModel::loadMaterial()
 {
-    m_materials.resize(m_scene->mNumMaterials);
+    if (m_scene->HasMaterials())
+        m_materials.reserve(m_scene->mNumMaterials);
 
     for (uint i = 0; i < m_scene->mNumMaterials; i++) {
         aiMaterial *material = m_scene->mMaterials[i];
@@ -140,10 +175,10 @@ void GLLoader::loadMaterial()
             //return 0;
         }
 
-        aiColor3D amb(0.0f, 0.0f, 0.0f);
-        aiColor3D dif(0.8f, 0.2f, 0.3f);
-        aiColor3D spec(0.5f, 0.6f, 0.1f);
-        float shine = 40.0f;
+        aiColor3D amb(1.0f, 1.0f, 1.0f);
+        aiColor3D dif(1.0f, 1.0f, 1.0f);
+        aiColor3D spec(1.0f, 1.0f, 1.0f);
+        float shine = 30.0f;
 
         if (material->Get(AI_MATKEY_COLOR_AMBIENT, amb) != aiReturn_SUCCESS)
             qWarning("material get amb fail");
@@ -154,12 +189,11 @@ void GLLoader::loadMaterial()
         if (material->Get(AI_MATKEY_SHININESS, shine) != aiReturn_SUCCESS)
             qWarning("material get shine fail");
 
+        PhongMaterial *pm = new PhongMaterial;
         GLShader::ShaderType type = GLShader::PHONG;
-
-        QString dpath, spath;
-        if (loadTexture(material, aiTextureType_DIFFUSE, dpath))
+        if (loadTexture(material, aiTextureType_DIFFUSE, pm))
             type = GLShader::PHONG_DIFFUSE_TEXTURE;
-        if (loadTexture(material, aiTextureType_SPECULAR, spath)) {
+        if (loadTexture(material, aiTextureType_SPECULAR, pm)) {
             if (type == GLShader::PHONG)
                 type = GLShader::PHONG_SPECULAR_TEXTURE;
             else
@@ -168,44 +202,20 @@ void GLLoader::loadMaterial()
 
         aiString name;
         if (material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS)
-            m_materials[i].setName(name.C_Str());
+            pm->setName(name.C_Str());
 
-        m_materials[i].setType(type);
-        m_materials[i].setMaterial(
+        pm->setType(type);
+        pm->setMaterial(
                 QVector3D(amb.r, amb.g, amb.b),
                 QVector3D(dif.r, dif.g, dif.b),
                 QVector3D(spec.r, spec.g, spec.b),
                 shine);
 
-        if (!dpath.isEmpty())
-            m_materials[i].setDiffuseTexturePath(dpath);
-        if (!spath.isEmpty())
-            m_materials[i].setSpecularTexturePath(spath);
+        m_materials.append(pm);
     }
 }
 
-GLTransformNode *GLLoader::convert()
-{
-    if (!m_scene)
-        return NULL;
-
-    loadPrimitive();
-    loadMaterial();
-
-    GLTransformNode *view = new GLTransformNode("view", QMatrix4x4());
-    GLTransformNode *model = new GLTransformNode("model", QMatrix4x4());
-    GLTransformNode *root = convert(m_scene->mRootNode);
-    view->addChild(model);
-    model->addChild(root);
-
-    convertLights(view);
-
-    m_scene = NULL;
-    m_importer.FreeScene();
-    return view;
-}
-
-GLTransformNode *GLLoader::convert(aiNode *node)
+GLTransformNode *GLAssimpLoadModel::loadNode(aiNode *node)
 {
     // meaningless node for render
     if (node->mNumChildren == 0 && node->mNumMeshes == 0)
@@ -217,13 +227,13 @@ GLTransformNode *GLLoader::convert(aiNode *node)
     for (uint i = 0; i < node->mNumMeshes; i++) {
         GLRenderNode *rnode = new GLRenderNode(
                     &m_meshes[node->mMeshes[i]],
-                    &m_materials[m_scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]
+                    m_materials[m_scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]
                 );
         root->addChild(rnode);
     }
 
     for (uint i = 0; i < node->mNumChildren; i++) {
-        GLTransformNode *tnode = convert(node->mChildren[i]);
+        GLTransformNode *tnode = loadNode(node->mChildren[i]);
         if (tnode)
             root->addChild(tnode);
     }
@@ -231,81 +241,68 @@ GLTransformNode *GLLoader::convert(aiNode *node)
     return root;
 }
 
-void GLLoader::assign(QVector3D &qc, const aiColor3D &ac)
+void GLAssimpLoadModel::assign(QVector3D &qc, const aiColor3D &ac)
 {
     qc.setX(ac.r);
     qc.setY(ac.g);
     qc.setZ(ac.b);
 }
 
-void GLLoader::assign(QVector3D &qv, const aiVector3D &av)
+void GLAssimpLoadModel::assign(QVector3D &qv, const aiVector3D &av)
 {
     qv.setX(av.x);
     qv.setY(av.y);
     qv.setZ(av.z);
 }
 
-void GLLoader::convertLights(GLTransformNode *root)
+void GLAssimpLoadModel::loadLight()
 {
-    m_lights.clear();
+    if (m_scene->HasLights())
+        m_lights.reserve(m_scene->mNumLights);
 
-    if (m_scene->HasLights()) {
-        for (uint i = 0; i < m_scene->mNumLights; i++) {
-            Light light;
-            aiLight *srcLight = m_scene->mLights[i];
-            aiMatrix4x4 trans;
-            aiNode *node = m_scene->mRootNode->FindNode(srcLight->mName);
-            if (node) {
-                aiNode *pn = node;
-                do {
-                    trans = pn->mTransformation * trans;
-                    pn = pn->mParent;
-                } while (pn);
-            }
-            else
-                qWarning() << "glloader: no node found for light: "
-                           << srcLight->mName.C_Str();
-
-            switch (srcLight->mType) {
-            case aiLightSource_DIRECTIONAL:
-                light.type = Light::SUN;
-                assign(light.pos, srcLight->mDirection);
-                break;
-            case aiLightSource_POINT:
-                light.type = Light::POINT;
-                assign(light.pos, srcLight->mPosition);
-                break;
-            default:
-                continue;
-            }
-            assign(light.amb, srcLight->mColorAmbient);
-            assign(light.dif, srcLight->mColorDiffuse);
-            assign(light.spec, srcLight->mColorSpecular);
-            light.name = srcLight->mName.C_Str();
-            light.node = new GLTransformNode(light.name, QMatrix4x4(trans[0]));
-            m_lights.append(light);
-
-            root->addChild(light.node);
+    for (uint i = 0; i < m_scene->mNumLights; i++) {
+        aiLight *srcLight = m_scene->mLights[i];
+        aiMatrix4x4 trans;
+        aiNode *node = m_scene->mRootNode->FindNode(srcLight->mName);
+        if (node) {
+            aiNode *pn = node;
+            do {
+                trans = pn->mTransformation * trans;
+                pn = pn->mParent;
+            } while (pn);
         }
-    }
+        else
+            qWarning() << "glloader: no node found for light: "
+                       << srcLight->mName.C_Str();
 
-    // at least one light
-    if (m_lights.size() == 0) {
-        Light light;
-        light.pos = QVector3D(100, 100, 100);
-        light.amb = QVector3D(1, 1, 1);
-        light.dif = QVector3D(1, 1, 1);
-        light.spec = QVector3D(1, 1, 1);
-        light.type = Light::POINT;
-        light.name = "default_light";
-        light.node = new GLTransformNode(light.name, QMatrix4x4());
+        Light *light = new Light;
+        switch (srcLight->mType) {
+        case aiLightSource_DIRECTIONAL:
+            light->type = Light::DIRECTIONAL;
+            assign(light->pos, srcLight->mDirection);
+            break;
+        case aiLightSource_POINT:
+            light->type = Light::POINT;
+            assign(light->pos, srcLight->mPosition);
+            break;
+        case aiLightSource_SPOT:
+            light->type = Light::SPOT;
+            break;
+        default:
+            continue;
+        }
 
+        assign(light->amb, srcLight->mColorAmbient);
+        assign(light->dif, srcLight->mColorDiffuse);
+        assign(light->spec, srcLight->mColorSpecular);
+        light->name = srcLight->mName.C_Str();
+        light->node = new GLTransformNode(light->name, QMatrix4x4(trans[0]));
         m_lights.append(light);
-        root->addChild(light.node);
     }
 }
 
-bool GLLoader::loadTexture(aiMaterial *material, aiTextureType type, QString &path)
+bool GLAssimpLoadModel::loadTexture(aiMaterial *material, aiTextureType type,
+                                    PhongMaterial *pmaterial)
 {
     aiString tpath;
     aiTextureMapMode mode;
@@ -331,32 +328,20 @@ bool GLLoader::loadTexture(aiMaterial *material, aiTextureType type, QString &pa
             break;
         }
 
-        path = tpath.C_Str();
-        if (m_textures.contains(path)) {
-            if (m_textures[path].mode != wmode)
-                qWarning() << "texture with different wrap mode detacted: "
-                           << m_model_dir.filePath(path);
-            return true;
-        }
-        else {
-            Texture texture;
-            if (texture.image.load(m_model_dir.filePath(path))) {
-                texture.image = texture.image.mirrored();
-                texture.mode = wmode;
-                m_textures[path] = texture;
-                return true;
-            }
-            else {
-                qWarning() << "load texture image fail: "
-                           << m_model_dir.filePath(path);
-                return false;
-            }
+        QString path = m_model_dir.filePath(tpath.C_Str());
+        switch (type) {
+        case aiTextureType_DIFFUSE:
+            return pmaterial->loadDiffuseTexture(path, wmode);
+        case aiTextureType_SPECULAR:
+            return pmaterial->loadSpecularTexture(path, wmode);
+        default:
+            return false;
         }
     }
     return false;
 }
 
-void GLLoader::printCamera(aiCamera *camera)
+void GLAssimpLoadModel::printCamera(aiCamera *camera)
 {
     qDebug() << "camera" << " name:" << camera->mName.C_Str()
              << " pos: " << printVector(camera->mPosition)
@@ -366,7 +351,7 @@ void GLLoader::printCamera(aiCamera *camera)
              << " far: " << camera->mClipPlaneFar;
 }
 
-void GLLoader::printLight(aiLight *light)
+void GLAssimpLoadModel::printLight(aiLight *light)
 {
     QString type;
     switch (light->mType) {
@@ -392,22 +377,22 @@ void GLLoader::printLight(aiLight *light)
              << " spec: " << printVector(light->mColorSpecular);
 }
 
-QString GLLoader::printVector(aiVector3D &v)
+QString GLAssimpLoadModel::printVector(aiVector3D &v)
 {
     return QString("x=%1 y=%2 z=%3").arg(v.x).arg(v.y).arg(v.z);
 }
 
-QString GLLoader::printVector(aiColor3D &c)
+QString GLAssimpLoadModel::printVector(aiColor3D &c)
 {
     return QString("r=%1 g=%2 b=%3").arg(c.r).arg(c.g).arg(c.b);
 }
 
-QString GLLoader::printVector(aiColor4D &c)
+QString GLAssimpLoadModel::printVector(aiColor4D &c)
 {
     return QString("r=%1 g=%2 b=%3 a=%4").arg(c.r).arg(c.g).arg(c.b).arg(c.a);
 }
 
-void GLLoader::printMaterial(aiMaterial *material)
+void GLAssimpLoadModel::printMaterial(aiMaterial *material)
 {
     int shadingModel;
     material->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
@@ -465,7 +450,7 @@ void GLLoader::printMaterial(aiMaterial *material)
         qDebug() << "shine: " << shine;
 }
 
-void GLLoader::printNode(aiNode *node, QString tab)
+void GLAssimpLoadModel::printNode(aiNode *node, QString tab)
 {
     qDebug() << tab << "node: " << node->mName.C_Str();
 
@@ -477,3 +462,4 @@ void GLLoader::printNode(aiNode *node, QString tab)
         printNode(node->mChildren[i], tab + "    ");
     }
 }
+

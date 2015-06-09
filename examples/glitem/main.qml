@@ -31,9 +31,14 @@ Window {
         y: 50
         width: 700
         height: 400
-        model: "qrc:/model/car.dae"
-        //model: "model/SWIM/Car Swim N220711.3DS"
         //asynchronous: false
+
+        glmodel: [
+            GLAssimpLoadModel {
+                file: "qrc:/model/car.dae"
+                //file: "model/SWIM/Car Swim N220711.3DS"
+            }
+        ]
 /*
         environment: GLEnvironment {
             top: "model/lake/lake1_up.JPG"

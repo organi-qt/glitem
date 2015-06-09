@@ -5,15 +5,11 @@
 #include <QList>
 #include <QMatrix4x4>
 
+class Mesh;
 class Material;
 
 class GLRenderNode {
 public:
-    struct Mesh {
-        int index_offset;
-        int index_count;
-    };
-
     GLRenderNode(Mesh *nmesh, Material *nmaterial)
         : m_mesh(nmesh), m_material(nmaterial)
     {}

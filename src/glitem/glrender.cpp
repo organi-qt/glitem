@@ -1,23 +1,24 @@
 #include "glrender.h"
 #include "glnode.h"
 #include "glenvironment.h"
+#include "material.h"
 
-GLRender::GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env)
-    : m_loader(loader), m_root(root), m_shaders{}, m_envmap(0),
+
+GLRender::GLRender(RenderParam *param)
+    : m_root(param->root), m_shaders{}, m_envmap(0),
+      m_num_vertex(param->num_vertex),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
       m_index_buffer(QOpenGLBuffer::IndexBuffer)
 {
     initializeOpenGLFunctions();
     //printOpenGLInfo();
 
-    const QList<Light> &lights = loader->lights();
     // init lights
-    for (int i = 0; i < lights.size(); i++) {
-        RenderState::RSLight light;
-        light.light = lights[i];
-        m_state.lights.append(light);
-    }
+    m_state.lights.resize(param->lights->size());
+    for (int i = 0; i < param->lights->size(); i++)
+        m_state.lights[i].light = param->lights->at(i);
 
+    EnvParam *env = param->env;
     if (env) {
         m_envmap = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
         m_envmap->setSize(env->width, env->height);
@@ -48,9 +49,26 @@ GLRender::GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env)
     // mark all states dirty
     m_state.setDirty();
 
-    initMaterials();
-    initPrimitives();
-    initNodes(root, lights);
+    // init primitives
+    m_vertex_buffer.create();
+    m_vertex_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_vertex_buffer.bind();
+    m_vertex_buffer.allocate(param->vertex->data(), param->vertex->size() * sizeof(float));
+    m_vertex_buffer.release();
+
+    m_index_buffer.create();
+    m_index_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_index_buffer.bind();
+    m_index_buffer.allocate(param->index->data(), param->index->size() * sizeof(ushort));
+    m_index_buffer.release();
+
+    foreach (Material *material, *param->materials) {
+        material->init();
+
+        GLShader::ShaderType type = material->type();
+        if (!m_shaders[type])
+            m_shaders[type] = new GLPhongShader(param->lights, type, m_envmap ? true : false);
+    }
 
     for (int i = 0; i < GLShader::NUM_SHADERS; i++)
         if (m_shaders[i])
@@ -59,15 +77,6 @@ GLRender::GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env)
 
 GLRender::~GLRender()
 {
-    if (m_root)
-        delete m_root;
-
-    QMapIterator<QString, QOpenGLTexture *> it(m_textures);
-    while (it.hasNext()) {
-        it.next();
-        delete it.value();
-    }
-
     if (m_envmap)
         delete m_envmap;
 }
@@ -92,86 +101,25 @@ bool GLRender::initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, Q
         return true;
 }
 
-void GLRender::initMaterials()
-{
-    QMap<QString, GLLoader::Texture> &textures = m_loader->textures();
-    QMapIterator<QString, GLLoader::Texture> it(textures);
-    while (it.hasNext()) {
-        it.next();
-        QOpenGLTexture *texture = new QOpenGLTexture(it.value().image);
-        texture->setMinificationFilter(QOpenGLTexture::Nearest);
-        texture->setMagnificationFilter(QOpenGLTexture::Linear);
-        texture->setWrapMode(it.value().mode);
-        m_textures[it.key()] = texture;
-    }
-    textures.clear();
-
-    QVector<PhongMaterial> &materials = m_loader->materials();
-    for (int i = 0; i < materials.size(); i++) {
-        if (!materials[i].diffuseTexturePath().isEmpty()) {
-            QMap<QString, QOpenGLTexture *>::const_iterator it =
-                    m_textures.find(materials[i].diffuseTexturePath());
-            Q_ASSERT(it != m_textures.end());
-            materials[i].setDiffuseTexture(it.value());
-        }
-
-        if (!materials[i].specularTexturePath().isEmpty()) {
-            QMap<QString, QOpenGLTexture *>::const_iterator it =
-                    m_textures.find(materials[i].specularTexturePath());
-            Q_ASSERT(it != m_textures.end());
-            materials[i].setSpecularTexture(it.value());
-        }
-    }
-}
-
-void GLRender::initPrimitives()
-{
-    m_vertex_buffer.create();
-    m_vertex_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_vertex_buffer.bind();
-    m_vertex_buffer.allocate(m_loader->vertex().data(),
-                             m_loader->vertex().size() * sizeof(float));
-    m_vertex_buffer.release();
-    m_loader->vertex().clear();
-
-    m_index_buffer.create();
-    m_index_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer.bind();
-    m_index_buffer.allocate(m_loader->index().data(),
-                            m_loader->index().size() * sizeof(ushort));
-    m_index_buffer.release();
-    m_loader->index().clear();
-}
-
-void GLRender::initNodes(GLTransformNode *node, const QList<Light> &lights)
-{
-    for (int i = 0; i < node->renderChildCount(); i++) {
-        GLShader::ShaderType type = node->renderChildAtIndex(i)->material()->type();
-        if (!m_shaders[type])
-            m_shaders[type] = new GLPhongShader(lights, type, m_envmap ? true : false);
-    }
-
-    for (int i = 0; i < node->transformChildCount(); i++)
-        initNodes(node->transformChildAtIndex(i), lights);
-}
-
 void GLRender::updateLightFinalPos()
 {
     for (int i = 0; i < m_state.lights.size(); i++) {
-        Light *light = &m_state.lights[i].light;
+        Light *light = m_state.lights[i].light;
         QVector3D pos;
         QMatrix4x4 &mat = light->node->modelviewMatrix();
         switch (light->type) {
         case Light::POINT:
             pos = mat * light->pos;
             break;
-        case Light::SUN:
+        case Light::DIRECTIONAL:
             {
                 QVector3D origin = mat * QVector3D();
                 QVector3D direction = mat * light->pos;
                 pos = direction - origin;
                 pos.normalize();
             }
+            break;
+        case Light::SPOT:
             break;
         }
 
@@ -290,7 +238,7 @@ void GLRender::render()
                 m_vertex_buffer.bind();
 
             glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float),
-                                  (void *)(m_loader->num_vertex() * 6 * sizeof(float)));
+                                  (void *)(m_num_vertex * 6 * sizeof(float)));
             glEnableVertexAttribArray(2);
             texture_enabled = true;
 

@@ -3,15 +3,22 @@
 
 #include "glshader.h"
 #include <QVector3D>
+#include <QOpenGLTexture>
 
-class QOpenGLTexture;
+class QImage;
 
 class Material
 {
 public:
+    Material() {}
+    virtual ~Material() {}
+
     virtual GLShader::ShaderType type() const = 0;
+
     const QString &name() const { return m_name; }
-    void setName(const QString &nname) { m_name = nname; }
+    void setName(const QString &value) { m_name = value; }
+
+    virtual void init() {}
 
 private:
     QString m_name;
@@ -19,6 +26,9 @@ private:
 
 class PhongMaterial : public Material {
 public:
+    PhongMaterial();
+    virtual ~PhongMaterial();
+
     virtual GLShader::ShaderType type() const { return m_type; }
     void setType(GLShader::ShaderType ntype) { m_type = ntype; }
 
@@ -27,14 +37,8 @@ public:
         m_ka = nka; m_kd = nkd; m_ks = nks; m_alpha = nalpha;
     }
 
-    void setDiffuseTexturePath(const QString &path) { m_diffuse_texture_path = path; }
-    void setSpecularTexturePath(const QString &path) { m_specular_texture_path = path; }
-
-    const QString &diffuseTexturePath() { return m_diffuse_texture_path; }
-    const QString &specularTexturePath() { return m_specular_texture_path; }
-
-    void setDiffuseTexture(QOpenGLTexture *texture) { m_diffuse_texture = texture; }
-    void setSpecularTexture(QOpenGLTexture *texture) { m_specular_texture = texture; }
+    bool loadDiffuseTexture(const QString &path, QOpenGLTexture::WrapMode mode);
+    bool loadSpecularTexture(const QString &path, QOpenGLTexture::WrapMode mode);
 
     QOpenGLTexture *diffuseTexture() { return m_diffuse_texture; }
     QOpenGLTexture *specularTexture() { return m_specular_texture; }
@@ -44,6 +48,8 @@ public:
     QVector3D &ks() { return m_ks; }
     float &alpha() { return m_alpha; }
 
+    virtual void init();
+
 private:
     GLShader::ShaderType m_type;
 
@@ -52,8 +58,11 @@ private:
     QVector3D m_ks;
     float m_alpha;
 
-    QString m_diffuse_texture_path;
-    QString m_specular_texture_path;
+    QImage *m_diffuse_texture_image;
+    QImage *m_specular_texture_image;
+    QOpenGLTexture::WrapMode m_diffuse_texture_mode;
+    QOpenGLTexture::WrapMode m_specular_texture_mode;
+
     QOpenGLTexture *m_diffuse_texture;
     QOpenGLTexture *m_specular_texture;
 };

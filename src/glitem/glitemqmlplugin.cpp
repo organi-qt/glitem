@@ -1,5 +1,12 @@
 #include "glitemqmlplugin.h"
 #include "glitem.h"
+#include "gljsonloadmodel.h"
+#include "glassimploadmodel.h"
+#include "gltransform.h"
+#include "glmaterial.h"
+#include "glanimatenode.h"
+#include "gllight.h"
+#include "glenvironment.h"
 
 
 void GLItemQmlPlugin::registerTypes(const char *uri)
@@ -16,8 +23,9 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
     qmlRegisterType<GLLight>("GLItem", 1, 0, "GLLight");
     qmlRegisterType<GLEnvironment>("GLItem", 1, 0, "GLEnvironment");
 
-    qmlRegisterType<GLLoadGeometry>("GLItem", 1, 0, "GLLoadGeometry");
-    qmlRegisterType<GLGeometry>();
+    qmlRegisterType<GLJSONLoadModel>("GLItem", 1, 0, "GLJSONLoadModel");
+    qmlRegisterType<GLAssimpLoadModel>("GLItem", 1, 0, "GLAssimpLoadModel");
+    qmlRegisterType<GLModel>();
     qmlRegisterType<GLPhongMaterial>("GLItem", 1, 0, "GLPhongMaterial");
     qmlRegisterType<GLMaterial>();
 }

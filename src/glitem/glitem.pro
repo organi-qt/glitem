@@ -6,7 +6,6 @@ SOURCES += \
     glshader.cpp \
     glnode.cpp \
     glrender.cpp \
-    glloader.cpp \
     gltransform.cpp \
     glitem.cpp \
     glitemqmlplugin.cpp \
@@ -15,14 +14,16 @@ SOURCES += \
     ailoaderiostream.cpp \
     ailoaderiosystem.cpp \
     glenvironment.cpp \
-    glgeometry.cpp \
-    glmaterial.cpp
+    glmaterial.cpp \
+    glassimploadmodel.cpp \
+    glmodel.cpp \
+    gljsonloadmodel.cpp \
+    material.cpp
 
 HEADERS += \
     glshader.h \
     glnode.h \
     glrender.h \
-    glloader.h \
     gltransform.h \
     glitem.h \
     glitemqmlplugin.h \
@@ -32,8 +33,13 @@ HEADERS += \
     ailoaderiosystem.h \
     glmaterial.h \
     glenvironment.h \
-    glgeometry.h \
-    material.h
+    material.h \
+    glmodel.h \
+    gljsonloadmodel.h \
+    glassimploadmodel.h \
+    mesh.h \
+    light.h \
+    renderstate.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

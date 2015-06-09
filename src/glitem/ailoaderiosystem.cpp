@@ -53,7 +53,6 @@ AiLoaderIOSystem::AiLoaderIOSystem()
 
 AiLoaderIOSystem::~AiLoaderIOSystem()
 {
-    qDeleteAll(m_sub);
 }
 
 bool AiLoaderIOSystem::Exists(const char* path) const
@@ -123,9 +122,7 @@ Assimp::IOStream* AiLoaderIOSystem::Open(const char* pFile, const char* pMode)
         delete f;
         return 0;
     }
-    AiLoaderIOStream *s = new AiLoaderIOStream(f);
-    m_sub.append(s);
-    return s;
+    return new AiLoaderIOStream(f);
 }
 
 void AiLoaderIOSystem::Close(Assimp::IOStream* stream)
@@ -133,6 +130,4 @@ void AiLoaderIOSystem::Close(Assimp::IOStream* stream)
     AiLoaderIOStream *s = static_cast<AiLoaderIOStream*>(stream);
     Q_ASSERT(s);
     s->device()->close();
-    m_sub.removeOne(stream);
-    delete stream;
 }

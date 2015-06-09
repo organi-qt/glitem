@@ -44,14 +44,6 @@
 
 #include <assimp/IOSystem.hpp>
 
-#include <QUrl>
-
-QT_BEGIN_NAMESPACE
-class QIODevice;
-QT_END_NAMESPACE
-
-class IOStream;
-
 class AiLoaderIOSystem : public Assimp::IOSystem
 {
 public:
@@ -61,8 +53,6 @@ public:
     virtual char getOsSeparator() const;
     virtual Assimp::IOStream* Open(const char* pFile, const char* pMode = "rb");
     virtual void Close(Assimp::IOStream* pFile);
-private:
-    QList<Assimp::IOStream*> m_sub;
 };
 
 #endif // AILOADERIOSYSTEM_H

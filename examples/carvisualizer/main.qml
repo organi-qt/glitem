@@ -20,18 +20,8 @@ Window {
             back: "model/t_01/g_01/pz.jpg"
         }
 
-        gllight: [
-            GLLight {
-                name: "Sun"
-                pos: Qt.vector3d(-1, 1, -1)
-                amb: Qt.vector3d(0, 0, 0)
-                dif: Qt.vector3d(0.5, 0.5, 0.5)
-                spec: Qt.vector3d(0.5, 0.5, 0.5)
-            }
-        ]
-
-        glgeometry: [
-            GLLoadGeometry {
+        glmodel: [
+            GLJSONLoadModel {
                 file: "model/m_01/a_01/c_01/b01.json"
                 material: body
             }

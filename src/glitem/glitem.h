@@ -2,22 +2,25 @@
 #define GLITEM_H
 
 #include <QQuickItem>
-#include "glloader.h"
-#include "glrender.h"
-#include "gltransform.h"
-#include "glanimatenode.h"
-#include "glenvironment.h"
-#include "glgeometry.h"
-#include "glmaterial.h"
 
+
+class GLTransformNode;
+class GLRender;
+class GLEnvironment;
+class GLModel;
+class GLMaterial;
+class GLAnimateNode;
+class GLLight;
+class EnvParam;
+class Light;
+class Material;
 
 class GLItem : public QQuickItem
 {
     Q_OBJECT
-    Q_PROPERTY(QUrl model READ model WRITE setModel NOTIFY modelChanged)
     Q_PROPERTY(QQmlListProperty<GLAnimateNode> glnode READ glnode DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLLight> gllight READ gllight DESIGNABLE false FINAL)
-    Q_PROPERTY(QQmlListProperty<GLGeometry> glgeometry READ glgeometry DESIGNABLE false FINAL)
+    Q_PROPERTY(QQmlListProperty<GLModel> glmodel READ glmodel DESIGNABLE false FINAL)
     Q_PROPERTY(QQmlListProperty<GLMaterial> glmaterial READ glmaterial DESIGNABLE false FINAL)
     Q_PROPERTY(Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(bool asynchronous READ asynchronous WRITE setAsynchronous NOTIFY asynchronousChanged)
@@ -29,11 +32,8 @@ public:
 
     QQmlListProperty<GLAnimateNode> glnode();
     QQmlListProperty<GLLight> gllight();
-    QQmlListProperty<GLGeometry> glgeometry();
+    QQmlListProperty<GLModel> glmodel();
     QQmlListProperty<GLMaterial> glmaterial();
-
-    QUrl model() { return m_model; }
-    void setModel(const QUrl &value);
 
     enum Status { Null, Ready, Loading, Error };
     Status status() const { return m_status; }
@@ -48,7 +48,6 @@ public:
     void load();
 
 signals:
-    void modelChanged();
     void statusChanged();
     void asynchronousChanged();
     void environmentChanged();
@@ -59,14 +58,18 @@ public slots:
     void updateWindow();
 
 private:
-    GLLoader m_loader;
     GLRender *m_render;
-    QUrl m_model;
     GLTransformNode *m_root;
     Status m_status;
     bool m_asynchronous;
     GLEnvironment *m_environment;
     EnvParam *m_envparam;
+
+    QVector<float> m_vertex;
+    QVector<ushort> m_index;
+    QList<Light *> m_lights;
+    QList<Material *> m_materials;
+    int m_num_vertex;
 
     bool loadEnvironmentImage(const QUrl &url, QImage &image);
 
@@ -82,11 +85,11 @@ private:
     static void gllight_clear(QQmlListProperty<GLLight> *list);
     QList<GLLight *> m_gllights;
 
-    static int glgeometry_count(QQmlListProperty<GLGeometry> *list);
-    static void glgeometry_append(QQmlListProperty<GLGeometry> *list, GLGeometry *);
-    static GLGeometry *glgeometry_at(QQmlListProperty<GLGeometry> *list, int);
-    static void glgeometry_clear(QQmlListProperty<GLGeometry> *list);
-    QList<GLGeometry *> m_glgeometrys;
+    static int glmodel_count(QQmlListProperty<GLModel> *list);
+    static void glmodel_append(QQmlListProperty<GLModel> *list, GLModel *);
+    static GLModel *glmodel_at(QQmlListProperty<GLModel> *list, int);
+    static void glmodel_clear(QQmlListProperty<GLModel> *list);
+    QList<GLModel *> m_glmodels;
 
     static int glmaterial_count(QQmlListProperty<GLMaterial> *list);
     static void glmaterial_append(QQmlListProperty<GLMaterial> *list, GLMaterial *);
@@ -98,4 +101,4 @@ private:
     void calcModelviewMatrix(GLTransformNode *, const QMatrix4x4 &);
 };
 
-#endif // SQUIRCLE_H
+#endif // GLITEM_H

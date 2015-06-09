@@ -1,6 +1,8 @@
 #include "glshader.h"
 #include "glnode.h"
+#include "mesh.h"
 #include "material.h"
+#include "renderstate.h"
 #include <QOpenGLContext>
 #include <QOpenGLTexture>
 
@@ -72,12 +74,12 @@ void GLShader::renderNode(GLTransformNode *node)
 
 const int GLPhongShader::m_max_lights;
 
-GLPhongShader::GLPhongShader(const QList<Light> &lights, ShaderType type, bool hasEnvMap)
+GLPhongShader::GLPhongShader(const QList<Light *> *lights, ShaderType type, bool hasEnvMap)
     : GLShader(), m_lights(lights),
-      m_num_lights(qMin(m_max_lights, m_lights.size())),
+      m_num_lights(qMin(m_max_lights, m_lights->size())),
       m_type(type), m_has_env_map(hasEnvMap)
 {
-    Q_ASSERT(m_lights.size() > 0);
+    Q_ASSERT(m_lights->size() > 0);
 }
 
 GLPhongShader::~GLPhongShader()
@@ -140,16 +142,18 @@ const QString &GLPhongShader::fragmentShader() const
                 "uniform lowp vec3 light%1_spec;\n"
             ).arg(i);
 
-            switch (m_lights[i].type) {
+            switch (m_lights->at(i)->type) {
             case Light::POINT:
                 lights_calc += QString(
                     "    L = normalize(light%1_pos - eyePosition);\n"
                 ).arg(i);
                 break;
-            case Light::SUN:
+            case Light::DIRECTIONAL:
                 lights_calc += QString(
                     "    L = normalize(-light%1_pos);\n"
                 ).arg(i);
+                break;
+            case Light::SPOT:
                 break;
             }
 
@@ -352,11 +356,11 @@ void GLPhongShader::updateRenderState(RenderState *s)
         if (s->lights[i].pos_dirty)
             program()->setUniformValue(m_id_light_pos[i], s->lights[i].final_pos);
         if (s->lights[i].amb_dirty)
-            program()->setUniformValue(m_id_light_amb[i], s->lights[i].light.amb);
+            program()->setUniformValue(m_id_light_amb[i], s->lights[i].light->amb);
         if (s->lights[i].dif_dirty)
-            program()->setUniformValue(m_id_light_dif[i], s->lights[i].light.dif);
+            program()->setUniformValue(m_id_light_dif[i], s->lights[i].light->dif);
         if (s->lights[i].spec_dirty)
-            program()->setUniformValue(m_id_light_spec[i], s->lights[i].light.spec);
+            program()->setUniformValue(m_id_light_spec[i], s->lights[i].light->spec);
     }
 }
 

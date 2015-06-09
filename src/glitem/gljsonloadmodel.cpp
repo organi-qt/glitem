@@ -1,4 +1,4 @@
-#include "glgeometry.h"
+#include "gljsonloadmodel.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -9,27 +9,13 @@
 #include <QDebug>
 
 
-GLGeometry::GLGeometry(QObject *parent)
-    : QObject(parent), m_material(0)
+GLJSONLoadModel::GLJSONLoadModel(QObject *parent)
+    : GLModel(parent)
 {
 
 }
 
-void GLGeometry::setMaterial(GLMaterial *value)
-{
-    if (m_material != value) {
-        m_material = value;
-        emit materialChanged();
-    }
-}
-
-GLLoadGeometry::GLLoadGeometry(QObject *parent)
-    : GLGeometry(parent)
-{
-
-}
-
-void GLLoadGeometry::setFile(const QUrl &value)
+void GLJSONLoadModel::setFile(const QUrl &value)
 {
     if (m_file != value) {
         m_file = value;
@@ -76,7 +62,7 @@ inline uint qHash(const TexturedVertex &key)
     return qHash(key.v) ^ qHash(key.n) ^ qHash(key.t);
 }
 
-bool GLLoadGeometry::load()
+bool GLJSONLoadModel::load()
 {
     if (m_file.isEmpty())
         return false;
@@ -112,7 +98,7 @@ bool GLLoadGeometry::load()
     QJsonObject json = doc.object();
     float scale = 1.0 / json.value("scale").toDouble(1.0);
 
-    //QJsonObject meta = json.value("metadata").toObject();
+    QJsonObject meta = json.value("metadata").toObject();
     QJsonArray va = json.value("vertices").toArray();
     QJsonArray na = json.value("normals").toArray();
     QJsonArray ta = json.value("uvs").toArray();
@@ -121,6 +107,14 @@ bool GLLoadGeometry::load()
     // now only support one uv channel
     Q_ASSERT(ta.count() == 1);
     ta = ta[0].toArray();
+
+    int nvertices = meta.value("vertices").toInt(1024);
+    int nfaces = meta.value("faces").toInt(1024);
+    m_vertex.reserve(nvertices * 3);
+    m_index.reserve(nfaces * 6);
+    m_textured_vertex.reserve(nvertices * 3);
+    m_textured_vertex_uv.reserve(nvertices * 3);
+    m_textured_index.reserve(nfaces * 6);
 
     typedef QHash<NormalVertex, ushort> NormalVertexMap;
     typedef QHash<TexturedVertex, ushort> TexturedVertexMap;
@@ -204,7 +198,7 @@ bool GLLoadGeometry::load()
             i += nov;
 
         ushort tia[nov];
-        QVector<ushort> *piv;
+        QList<ushort> *piv;
         if (hasFaceVertexUv) {
             for (int j = 0; j < nov; j++) {
                 TexturedVertex tv;
@@ -259,15 +253,16 @@ bool GLLoadGeometry::load()
     return true;
 }
 
-void GLLoadGeometry::appendVector(QVector<float> &vector, QVector2D &value)
+void GLJSONLoadModel::appendVector(QList<float> &vector, QVector2D &value)
 {
     vector.append(value.x());
     vector.append(value.y());
 }
 
-void GLLoadGeometry::appendVector(QVector<float> &vector, QVector3D &value)
+void GLJSONLoadModel::appendVector(QList<float> &vector, QVector3D &value)
 {
     vector.append(value.x());
     vector.append(value.y());
     vector.append(value.z());
 }
+

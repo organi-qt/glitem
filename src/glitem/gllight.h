@@ -5,18 +5,7 @@
 #include <QVector3D>
 #include <QString>
 
-struct RenderState;
-class GLTransformNode;
-
-struct Light {
-    enum { POINT, SUN } type;
-    QString name;
-    QVector3D pos;
-    QVector3D amb;
-    QVector3D dif;
-    QVector3D spec;
-    GLTransformNode *node;
-};
+class RenderState;
 
 class GLLight : public QObject
 {

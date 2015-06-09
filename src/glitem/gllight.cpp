@@ -1,5 +1,6 @@
 #include "gllight.h"
 #include "glshader.h"
+#include "renderstate.h"
 
 GLLight::GLLight(QObject *parent)
     : QObject(parent),
@@ -62,7 +63,7 @@ void GLLight::updateState(RenderState *state)
     if (m_state_index == -1) {
         // first time
         for (int i = 0; i < state->lights.size(); i++) {
-            if (state->lights[i].light.name == m_name) {
+            if (state->lights[i].light->name == m_name) {
                 m_state_index = i;
                 break;
             }

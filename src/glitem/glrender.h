@@ -2,20 +2,32 @@
 #define GLRENDER_H
 
 #include "glshader.h"
-#include "glloader.h"
+#include "renderstate.h"
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
+#include <QOpenGLTexture>
 #include <QObject>
 
 class GLShader;
 class GLTransformNode;
-struct EnvParam;
+class Material;
+class EnvParam;
+
+struct RenderParam {
+    GLTransformNode *root;
+    QVector<float> *vertex;
+    QVector<ushort> *index;
+    QList<Material *> *materials;
+    QList<Light *> *lights;
+    EnvParam *env;
+    int num_vertex;
+};
 
 class GLRender : public QObject, protected QOpenGLFunctions
 {
     Q_OBJECT
 public:
-    GLRender(GLTransformNode *root, GLLoader *loader, EnvParam *env);
+    GLRender(RenderParam *param);
     ~GLRender();
 
     RenderState *state() { return &m_state; }
@@ -27,13 +39,12 @@ public slots:
     void render();
 
 private:
-    GLLoader *m_loader;
     GLTransformNode *m_root;
     RenderState m_state;
     QRect m_viewport;
     GLShader *m_shaders[GLShader::NUM_SHADERS];
-    QMap<QString, QOpenGLTexture *> m_textures;
     QOpenGLTexture *m_envmap;
+    int m_num_vertex;
 
     struct OpenGLState {
         bool depth_mask;
@@ -50,9 +61,6 @@ private:
     void switchOpenGlState();
     void restoreOpenGLState();
 
-    void initMaterials();
-    void initPrimitives();
-    void initNodes(GLTransformNode *node, const QList<Light> &lights);
     bool initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size);
 
     void renderNode(GLTransformNode *);

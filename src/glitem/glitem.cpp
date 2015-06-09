@@ -1,6 +1,12 @@
 #include <QQuickWindow>
 #include <QThread>
 #include "glitem.h"
+#include "glmodel.h"
+#include "glnode.h"
+#include "glrender.h"
+#include "glenvironment.h"
+#include "gllight.h"
+#include "material.h"
 
 
 GLItem::GLItem(QQuickItem *parent)
@@ -17,6 +23,12 @@ GLItem::~GLItem()
         delete m_envparam;
         m_envparam = 0;
     }
+
+    if (m_root)
+        delete m_root;
+
+    qDeleteAll(m_materials);
+    qDeleteAll(m_lights);
 }
 
 void GLItem::sync()
@@ -25,11 +37,24 @@ void GLItem::sync()
         return;
 
     if (!m_render) {
-        m_render = new GLRender(m_root, &m_loader, m_envparam);
+        RenderParam param = {
+            .root = m_root,
+            .vertex = &m_vertex,
+            .index = &m_index,
+            .materials = &m_materials,
+            .lights = &m_lights,
+            .env = m_envparam,
+            .num_vertex = m_num_vertex
+        };
+        m_render = new GLRender(&param);
+
         if (m_envparam) {
             delete m_envparam;
             m_envparam = 0;
         }
+
+        m_vertex.clear();
+        m_index.clear();
 
         connect(window(), &QQuickWindow::beforeRendering, m_render, &GLRender::render, Qt::DirectConnection);
     }
@@ -72,14 +97,6 @@ void GLItem::updateWindow()
 {
     if (window())
         window()->update();
-}
-
-void GLItem::setModel(const QUrl &value)
-{
-    if (m_model != value) {
-        m_model = value;
-        emit modelChanged();
-    }
 }
 
 void GLItem::setAsynchronous(bool value)
@@ -130,15 +147,29 @@ void GLItem::load()
     m_status = Loading;
     emit statusChanged();
 
-    if (m_model.isValid() && m_loader.load(m_model) && (m_root = m_loader.convert())) {
-        foreach (GLAnimateNode *node, m_glnodes) {
-            if (!bindAnimateNode(m_root, node))
-                qWarning() << "no node find in model named: " << node->name();
+    GLTransformNode *view, *model;
+    for (int i = 0; i < m_glmodels.size(); i++) {
+        GLModel *md = m_glmodels[i];
+
+        if (md->load()) {
+            if (!m_root) {
+                view = new GLTransformNode("view", QMatrix4x4());
+                model = new GLTransformNode("model", QMatrix4x4());
+                view->addChild(model);
+                m_root = view;
+            }
+
+            if (md->root())
+                model->addChild(md->root());
+
+            foreach (Light *light, md->lights()) {
+                view->addChild(light->node);
+            }
+            m_lights.append(md->lights());
+
+            m_materials.append(md->materials());
         }
     }
-
-    for (int i = 0; i < m_glgeometrys.size(); i++)
-        m_glgeometrys[i]->load();
 
     if (!m_root) {
         m_status = Error;
@@ -146,6 +177,63 @@ void GLItem::load()
         return;
     }
 
+    QList<float> vertex;
+    QList<ushort> index;
+    // build textured vertex array
+    for (int i = 0; i < m_glmodels.size(); i++) {
+        GLModel *md = m_glmodels[i];
+
+        int ibase = vertex.size() / 6;
+        for (int j = 0; j < md->texturedIndex().size(); j++)
+            md->texturedIndex()[j] += ibase;
+
+        int ioff = index.size() * sizeof(ushort);
+        for (int j = 0; j < md->meshes().size(); j++)
+            if (md->meshes()[j].type == Mesh::TEXTURED)
+                md->meshes()[j].index_offset += ioff;
+
+        vertex.append(md->texturedVertex());
+        index.append(md->texturedIndex());
+    }
+
+    // build normal vertex array
+    for (int i = 0; i < m_glmodels.size(); i++) {
+        GLModel *md = m_glmodels[i];
+
+        int ibase = vertex.size() / 6;
+        for (int j = 0; j < md->index().size(); j++)
+            md->index()[j] += ibase;
+
+        int ioff = index.size() * sizeof(ushort);
+        for (int j = 0; j < md->meshes().size(); j++)
+            if (md->meshes()[j].type == Mesh::NORMAL)
+                md->meshes()[j].index_offset += ioff;
+
+        vertex.append(md->vertex());
+        index.append(md->index());
+    }
+
+    m_num_vertex = vertex.size() / 6;
+    Q_ASSERT(m_num_vertex < USHRT_MAX);
+
+    // build texture uv array
+    for (int i = 0; i < m_glmodels.size(); i++) {
+        GLModel *md = m_glmodels[i];
+        vertex.append(md->texturedVertexUV());
+        // free data stored in model
+        md->release();
+    }
+
+    m_vertex = vertex.toVector();
+    m_index = index.toVector();
+
+    // bind animated node to scene graph
+    foreach (GLAnimateNode *node, m_glnodes) {
+        if (!bindAnimateNode(m_root, node))
+            qWarning() << "no node find in model named: " << node->name();
+    }
+
+    // load environment texture
     if (m_environment) {
         bool hasEnv = false;
         m_envparam = new EnvParam;
@@ -194,7 +282,7 @@ void GLItem::componentComplete()
 {
     QQuickItem::componentComplete();
 
-    if (m_model.isValid() || !m_glgeometrys.isEmpty()) {
+    if (!m_glmodels.isEmpty()) {
         if (m_asynchronous) {
             QThread *t = new AsyncLoadThread(this);
             connect(t, &QThread::finished, t, &QObject::deleteLater);
@@ -342,55 +430,55 @@ void GLItem::gllight_clear(QQmlListProperty<GLLight> *list)
         qWarning()<<"Warning: could not find GLItem to clear of lights";
 }
 
-QQmlListProperty<GLGeometry> GLItem::glgeometry()
+QQmlListProperty<GLModel> GLItem::glmodel()
 {
-    return QQmlListProperty<GLGeometry>(this, 0, glgeometry_append, glgeometry_count, glgeometry_at, glgeometry_clear);
+    return QQmlListProperty<GLModel>(this, 0, glmodel_append, glmodel_count, glmodel_at, glmodel_clear);
 }
 
-int GLItem::glgeometry_count(QQmlListProperty<GLGeometry> *list)
+int GLItem::glmodel_count(QQmlListProperty<GLModel> *list)
 {
     GLItem *object = qobject_cast<GLItem *>(list->object);
     if (object) {
-        return object->m_glgeometrys.count();
+        return object->m_glmodels.count();
     } else {
-        qWarning()<<"Warning: could not find GLItem to query for geometry count.";
+        qWarning()<<"Warning: could not find GLItem to query for model count.";
         return 0;
     }
 }
 
-void GLItem::glgeometry_append(QQmlListProperty<GLGeometry> *list, GLGeometry *item)
+void GLItem::glmodel_append(QQmlListProperty<GLModel> *list, GLModel *item)
 {
     GLItem *object = qobject_cast<GLItem *>(list->object);
-    QList<GLGeometry *> *pgeometrys;
+    QList<GLModel *> *pmodels;
     if (object) {
-        pgeometrys = &object->m_glgeometrys;
+        pmodels = &object->m_glmodels;
 
-        if (!pgeometrys->contains(item))
-            pgeometrys->append(item);
+        if (!pmodels->contains(item))
+            pmodels->append(item);
     }
     else
-        qWarning()<<"Warning: could not find GLItem to add geometry to.";
+        qWarning()<<"Warning: could not find GLItem to add model to.";
 }
 
-GLGeometry *GLItem::glgeometry_at(QQmlListProperty<GLGeometry> *list, int idx)
+GLModel *GLItem::glmodel_at(QQmlListProperty<GLModel> *list, int idx)
 {
     GLItem *object = qobject_cast<GLItem *>(list->object);
     if (object) {
-        return object->m_glgeometrys.at(idx);
+        return object->m_glmodels.at(idx);
     } else {
-        qWarning()<<"Warning: could not find GLItem to query for geometries";
+        qWarning()<<"Warning: could not find GLItem to query for models";
         return 0;
     }
     return 0;
 }
 
-void GLItem::glgeometry_clear(QQmlListProperty<GLGeometry> *list)
+void GLItem::glmodel_clear(QQmlListProperty<GLModel> *list)
 {
     GLItem *object = qobject_cast<GLItem *>(list->object);
     if (object)
-        object->m_glgeometrys.clear();
+        object->m_glmodels.clear();
     else
-        qWarning()<<"Warning: could not find GLItem to clear of geometries";
+        qWarning()<<"Warning: could not find GLItem to clear of models";
 }
 
 QQmlListProperty<GLMaterial> GLItem::glmaterial()
