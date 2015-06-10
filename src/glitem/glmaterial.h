@@ -5,11 +5,16 @@
 #include <QColor>
 #include <QUrl>
 
+class Material;
+class PhongMaterial;
+
 class GLMaterial : public QObject
 {
     Q_OBJECT
 public:
     GLMaterial(QObject *parent = 0);
+
+    virtual Material *material() = 0;
 };
 
 class GLPhongMaterial : public GLMaterial
@@ -46,6 +51,8 @@ public:
     qreal reflectivity() { return m_reflectivity; }
     void setReflectivity(qreal value);
 
+    virtual Material *material();
+
 signals:
     void colorChanged();
     void specularChanged();
@@ -63,6 +70,8 @@ private:
     QUrl m_specular_map;
     bool m_env_map;
     qreal m_reflectivity;
+
+    PhongMaterial *m_material;
 };
 
 #endif // GLMATERIAL_H

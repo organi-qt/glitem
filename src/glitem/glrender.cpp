@@ -137,7 +137,7 @@ void GLRender::setViewport(const QRect &viewport)
     ratio /= m_viewport.height();
 
     QMatrix4x4 mat;
-    mat.perspective(60, ratio, 0.1, 100.0);
+    mat.perspective(60, ratio, 0.1, 10000.0);
     m_state.setProjectionMatrix(mat);
 }
 

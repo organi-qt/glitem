@@ -153,8 +153,8 @@ void GLItem::load()
 
         if (md->load()) {
             if (!m_root) {
-                view = new GLTransformNode("view", QMatrix4x4());
-                model = new GLTransformNode("model", QMatrix4x4());
+                view = new GLTransformNode("view");
+                model = new GLTransformNode("model");
                 view->addChild(model);
                 m_root = view;
             }
@@ -175,6 +175,18 @@ void GLItem::load()
         m_status = Error;
         emit statusChanged();
         return;
+    }
+
+    if (m_lights.isEmpty()) {
+        Light *light = new Light;
+        light->pos = QVector3D(1000, 1000, 1000);
+        light->amb = QVector3D(1, 1, 1);
+        light->dif = QVector3D(1, 1, 1);
+        light->spec = QVector3D(1, 1, 1);
+        light->type = Light::POINT;
+        light->name = "default_light";
+        light->node = new GLTransformNode(light->name);
+        m_lights.append(light);
     }
 
     QList<float> vertex;

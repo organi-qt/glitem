@@ -25,7 +25,7 @@ private:
 class GLTransformNode
 {
 public:
-    GLTransformNode(const QString &name, const QMatrix4x4 &transform);
+    GLTransformNode(const QString &name, const QMatrix4x4 &transform = QMatrix4x4());
     ~GLTransformNode();
 
     void addChild(GLRenderNode *node) { m_render_children.append(node); }

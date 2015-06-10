@@ -1,4 +1,6 @@
 #include "gljsonloadmodel.h"
+#include "glmaterial.h"
+#include "glnode.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -250,6 +252,34 @@ bool GLJSONLoadModel::load()
             piv->append(tia[2]);
         }
     }
+
+    if (m_material)
+        m_materials.append(m_material->material());
+
+    m_root = new GLTransformNode(m_file.fileName());
+
+    int nmeshes = 0;
+    if (!m_index.isEmpty()) {
+        m_meshes.resize(nmeshes + 1);
+
+        m_meshes[nmeshes].type = Mesh::NORMAL;
+        m_meshes[nmeshes].index_offset = 0;
+        m_meshes[nmeshes].index_count = m_index.size();
+
+        m_root->addChild(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+        nmeshes++;
+    }
+
+    if (!m_textured_index.isEmpty()) {
+        m_meshes.resize(nmeshes + 1);
+
+        m_meshes[nmeshes].type = Mesh::TEXTURED;
+        m_meshes[nmeshes].index_offset = 0;
+        m_meshes[nmeshes].index_count = m_index.size();
+
+        m_root->addChild(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+    }
+
     return true;
 }
 
