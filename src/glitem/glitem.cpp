@@ -5,6 +5,7 @@
 #include "glnode.h"
 #include "glrender.h"
 #include "glenvironment.h"
+#include "glmaterial.h"
 #include "gllight.h"
 #include "material.h"
 
@@ -188,6 +189,9 @@ void GLItem::load()
         light->node = new GLTransformNode(light->name);
         m_lights.append(light);
     }
+
+    for (int i = 0; i < m_glmaterials.size(); i++)
+        m_materials.append(m_glmaterials[i]->material());
 
     QList<float> vertex;
     QList<ushort> index;

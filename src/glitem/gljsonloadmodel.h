@@ -22,8 +22,8 @@ signals:
 private:
     QUrl m_file;
 
-    void appendVector(QList<float> &vector, QVector2D &value);
-    void appendVector(QList<float> &vector, QVector3D &value);
+    void appendVector(QList<float> *vector, QVector2D &value);
+    void appendVector(QList<float> *vector, QVector3D &value);
 };
 
 #endif // GLJSONLOADMODEL_H

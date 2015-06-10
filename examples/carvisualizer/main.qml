@@ -32,6 +32,14 @@ Window {
             GLJSONLoadModel {
                 file: "model/models/carvisualizer.ferrari_bumper.json"
                 material: bumper
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.rim.json"
+                material: bumper
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.wheel.json"
+                material: bumper
             }
         ]
 
