@@ -2,7 +2,7 @@
 
 
 GLEnvironment::GLEnvironment(QObject *parent)
-    : QObject(parent), m_alpha(0.5)
+    : QObject(parent)
 {
 
 }
@@ -55,10 +55,3 @@ void GLEnvironment::setBack(const QUrl &value)
     }
 }
 
-void GLEnvironment::setAlpha(qreal value)
-{
-    if (m_alpha != value) {
-        m_alpha = value;
-        emit alphaChanged();
-    }
-}

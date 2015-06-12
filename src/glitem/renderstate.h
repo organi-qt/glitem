@@ -1,20 +1,23 @@
 #ifndef RENDERSTATE
 #define RENDERSTATE
 
-#include <QMatrix>
+#include <QMatrix4x4>
 #include "light.h"
+
+class QOpenGLTexture;
 
 struct RenderState {
     QMatrix4x4 projection_matrix;
     float opacity;
     bool visible;
-    float env_alpha;
+
+    QOpenGLTexture *envmap;
+    QVector3D light_amb;
 
     struct RSLight {
         Light *light;
         QVector3D final_pos;
         bool pos_dirty;
-        bool amb_dirty;
         bool dif_dirty;
         bool spec_dirty;
     };
@@ -22,7 +25,7 @@ struct RenderState {
 
     bool projection_matrix_dirty;
     bool opacity_dirty;
-    bool env_alpha_dirty;
+    bool light_amb_dirty;
 
     void setProjectionMatrix(const QMatrix4x4 &value) {
         if (projection_matrix != value) {
@@ -35,13 +38,6 @@ struct RenderState {
         if (opacity != value) {
             opacity = value;
             opacity_dirty = true;
-        }
-    }
-
-    void setEnvAlpha(float value) {
-        if (env_alpha != value) {
-            env_alpha = value;
-            env_alpha_dirty = true;
         }
     }
 
@@ -60,12 +56,10 @@ struct RenderState {
         }
     }
 
-    void setLightAmb(int i, const QVector3D &value) {
-        Q_ASSERT(i >= 0 && i < lights.size());
-
-        if (lights[i].light->amb != value) {
-            lights[i].light->amb = value;
-            lights[i].amb_dirty = true;
+    void setLightAmb(const QVector3D &value) {
+        if (light_amb != value) {
+            light_amb = value;
+            light_amb_dirty = true;
         }
     }
 
@@ -90,10 +84,9 @@ struct RenderState {
     void setDirty() {
         projection_matrix_dirty = true;
         opacity_dirty = true;
-        env_alpha_dirty = true;
+        light_amb_dirty = true;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].pos_dirty = true;
-            lights[i].amb_dirty = true;
             lights[i].dif_dirty = true;
             lights[i].spec_dirty = true;
         }
@@ -102,10 +95,9 @@ struct RenderState {
     void resetDirty() {
         projection_matrix_dirty = false;
         opacity_dirty = false;
-        env_alpha_dirty = false;
+        light_amb_dirty = false;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].pos_dirty = false;
-            lights[i].amb_dirty = false;
             lights[i].dif_dirty = false;
             lights[i].spec_dirty = false;
         }

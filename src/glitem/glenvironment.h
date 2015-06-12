@@ -12,7 +12,6 @@ struct EnvParam {
     QImage right;
     QImage front;
     QImage back;
-    float alpha;
     int width;
     int height;
 };
@@ -26,7 +25,6 @@ class GLEnvironment : public QObject
     Q_PROPERTY(QUrl right READ right WRITE setRight NOTIFY rightChanged)
     Q_PROPERTY(QUrl front READ front WRITE setFront NOTIFY frontChanged)
     Q_PROPERTY(QUrl back READ back WRITE setBack NOTIFY backChanged)
-    Q_PROPERTY(qreal alpha READ alpha WRITE setAlpha NOTIFY alphaChanged)
 public:
     GLEnvironment(QObject *parent = 0);
 
@@ -36,7 +34,6 @@ public:
     QUrl right() const { return m_right; }
     QUrl front() const { return m_front; }
     QUrl back() const { return m_back; }
-    qreal alpha() const { return m_alpha; }
 
     void setTop(const QUrl &value);
     void setBottom(const QUrl &value);
@@ -44,7 +41,6 @@ public:
     void setRight(const QUrl &value);
     void setFront(const QUrl &value);
     void setBack(const QUrl &value);
-    void setAlpha(qreal value);
 
 signals:
     void topChanged();
@@ -53,7 +49,6 @@ signals:
     void rightChanged();
     void frontChanged();
     void backChanged();
-    void alphaChanged();
 
 private:
     QUrl m_top;
@@ -62,7 +57,6 @@ private:
     QUrl m_right;
     QUrl m_front;
     QUrl m_back;
-    qreal m_alpha;
 };
 
 #endif // GLENVIRONMENT_H

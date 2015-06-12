@@ -181,7 +181,6 @@ void GLItem::load()
     if (m_lights.isEmpty()) {
         Light *light = new Light;
         light->pos = QVector3D(1000, 1000, 1000);
-        light->amb = QVector3D(1, 1, 1);
         light->dif = QVector3D(1, 1, 1);
         light->spec = QVector3D(1, 1, 1);
         light->type = Light::POINT;
@@ -254,16 +253,13 @@ void GLItem::load()
         bool hasEnv = false;
         m_envparam = new EnvParam;
         m_envparam->width = m_envparam->height = 0;
-        m_envparam->alpha = m_environment->alpha();
 
-        if (m_envparam->alpha > 0 && m_envparam->alpha < 1.0) {
-            hasEnv |= loadEnvironmentImage(m_environment->top(), m_envparam->top);
-            hasEnv |= loadEnvironmentImage(m_environment->bottom(), m_envparam->bottom);
-            hasEnv |= loadEnvironmentImage(m_environment->left(), m_envparam->left);
-            hasEnv |= loadEnvironmentImage(m_environment->right(), m_envparam->right);
-            hasEnv |= loadEnvironmentImage(m_environment->front(), m_envparam->front);
-            hasEnv |= loadEnvironmentImage(m_environment->back(), m_envparam->back);
-        }
+        hasEnv |= loadEnvironmentImage(m_environment->top(), m_envparam->top);
+        hasEnv |= loadEnvironmentImage(m_environment->bottom(), m_envparam->bottom);
+        hasEnv |= loadEnvironmentImage(m_environment->left(), m_envparam->left);
+        hasEnv |= loadEnvironmentImage(m_environment->right(), m_envparam->right);
+        hasEnv |= loadEnvironmentImage(m_environment->front(), m_envparam->front);
+        hasEnv |= loadEnvironmentImage(m_environment->back(), m_envparam->back);
 
         if (!hasEnv) {
             delete m_envparam;

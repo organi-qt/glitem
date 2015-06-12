@@ -3,10 +3,8 @@
 #include "renderstate.h"
 
 GLLight::GLLight(QObject *parent)
-    : QObject(parent),
-      m_pos_dirty(true), m_amb_dirty(true),
-      m_dif_dirty(true), m_spec_dirty(true),
-      m_state_index(-1)
+    : QObject(parent), m_pos_dirty(true), m_dif_dirty(true),
+      m_spec_dirty(true), m_state_index(-1)
 {
 }
 
@@ -24,16 +22,6 @@ void GLLight::setPos(const QVector3D &value)
         m_pos = value;
         m_pos_dirty = true;
         emit posChanged();
-        emit lightChanged();
-    }
-}
-
-void GLLight::setAmb(const QVector3D &value)
-{
-    if (m_amb != value) {
-        m_amb = value;
-        m_amb_dirty = true;
-        emit ambChanged();
         emit lightChanged();
     }
 }
@@ -80,9 +68,6 @@ void GLLight::updateState(RenderState *state)
 
     if (m_pos_dirty)
         state->setLightPos(m_state_index, m_pos);
-
-    if (m_amb_dirty)
-        state->setLightAmb(m_state_index, m_amb);
 
     if (m_dif_dirty)
         state->setLightDif(m_state_index, m_dif);

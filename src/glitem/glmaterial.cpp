@@ -75,13 +75,14 @@ Material *GLPhongMaterial::material()
 {
     if (!m_material) {
         m_material = new PhongMaterial();
-        m_material->setType(GLShader::PHONG);
         m_material->setMaterial(
                     QVector3D(),
                     QVector3D(m_color.redF(), m_color.greenF(), m_color.blueF()),
                     QVector3D(m_specular.redF(), m_specular.greenF(), m_specular.blueF()),
                     m_shininess
                     );
+        if (m_env_map)
+            m_material->setEnvMap(m_reflectivity);
     }
     return m_material;
 }

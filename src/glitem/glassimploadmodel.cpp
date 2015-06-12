@@ -190,21 +190,13 @@ void GLAssimpLoadModel::loadMaterial()
             qWarning("material get shine fail");
 
         PhongMaterial *pm = new PhongMaterial;
-        GLShader::ShaderType type = GLShader::PHONG;
-        if (loadTexture(material, aiTextureType_DIFFUSE, pm))
-            type = GLShader::PHONG_DIFFUSE_TEXTURE;
-        if (loadTexture(material, aiTextureType_SPECULAR, pm)) {
-            if (type == GLShader::PHONG)
-                type = GLShader::PHONG_SPECULAR_TEXTURE;
-            else
-                type = GLShader::PHONG_DIFFUSE_SPECULAR_TEXTURE;
-        }
+        loadTexture(material, aiTextureType_DIFFUSE, pm);
+        loadTexture(material, aiTextureType_SPECULAR, pm);
 
         aiString name;
         if (material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS)
             pm->setName(name.C_Str());
 
-        pm->setType(type);
         pm->setMaterial(
                 QVector3D(amb.r, amb.g, amb.b),
                 QVector3D(dif.r, dif.g, dif.b),
@@ -292,7 +284,6 @@ void GLAssimpLoadModel::loadLight()
             continue;
         }
 
-        assign(light->amb, srcLight->mColorAmbient);
         assign(light->dif, srcLight->mColorDiffuse);
         assign(light->spec, srcLight->mColorSpecular);
         light->name = srcLight->mName.C_Str();

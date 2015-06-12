@@ -1,11 +1,12 @@
 #include "glrender.h"
+#include "glshader.h"
 #include "glnode.h"
 #include "glenvironment.h"
 #include "material.h"
 
 
 GLRender::GLRender(RenderParam *param)
-    : m_root(param->root), m_shaders{}, m_envmap(0),
+    : m_root(param->root),
       m_num_vertex(param->num_vertex),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
       m_index_buffer(QOpenGLBuffer::IndexBuffer)
@@ -19,18 +20,19 @@ GLRender::GLRender(RenderParam *param)
         m_state.lights[i].light = param->lights->at(i);
 
     EnvParam *env = param->env;
+    m_state.envmap = 0;
     if (env) {
-        m_envmap = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
-        m_envmap->setSize(env->width, env->height);
+        m_state.envmap = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
+        m_state.envmap->setSize(env->width, env->height);
         if (QOpenGLContext::currentContext()->isOpenGLES())
-            m_envmap->setFormat(QOpenGLTexture::RGBFormat);
+            m_state.envmap->setFormat(QOpenGLTexture::RGBFormat);
         else
-            m_envmap->setFormat(QOpenGLTexture::RGB32F);
-        m_envmap->setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
-        m_envmap->setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-        //m_envmap->setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-        m_envmap->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-        m_envmap->allocateStorage();
+            m_state.envmap->setFormat(QOpenGLTexture::RGB32F);
+        m_state.envmap->setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+        m_state.envmap->setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+        //m_state.envmap->setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+        m_state.envmap->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+        m_state.envmap->allocateStorage();
 
         QSize size(env->width, env->height);
         if (!initEnvTexture(QOpenGLTexture::CubeMapPositiveX, env->right, size) ||
@@ -39,11 +41,9 @@ GLRender::GLRender(RenderParam *param)
             !initEnvTexture(QOpenGLTexture::CubeMapNegativeY, env->bottom, size) ||
             !initEnvTexture(QOpenGLTexture::CubeMapPositiveZ, env->back, size) ||
             !initEnvTexture(QOpenGLTexture::CubeMapNegativeZ, env->front, size)) {
-            delete m_envmap;
-            m_envmap = 0;
+            delete m_state.envmap;
+            m_state.envmap = 0;
         }
-
-        m_state.setEnvAlpha(env->alpha);
     }
 
     // mark all states dirty
@@ -63,33 +63,43 @@ GLRender::GLRender(RenderParam *param)
     m_index_buffer.release();
 
     foreach (Material *material, *param->materials) {
-        material->init();
-
-        GLShader::ShaderType type = material->type();
-        if (!m_shaders[type])
-            m_shaders[type] = new GLPhongShader(param->lights, type, m_envmap ? true : false);
+        Material::InitResult res =
+                material->init(param->lights, m_state.envmap ? true : false);
+        switch (res) {
+        case Material::NORMAL_SHADER:
+            m_normal_shaders.append(material->shader());
+            break;
+        case Material::TEXTURED_SHADER:
+            m_textured_shaders.append(material->shader());
+            break;
+        case Material::EXIST_SHADER:
+            break;
+        }
     }
 
-    for (int i = 0; i < GLShader::NUM_SHADERS; i++)
-        if (m_shaders[i])
-            m_shaders[i]->initialize();
+    foreach (GLShader *shader, m_normal_shaders + m_textured_shaders) {
+        shader->initialize();
+    }
 }
 
 GLRender::~GLRender()
 {
-    if (m_envmap)
-        delete m_envmap;
+    if (m_state.envmap)
+        delete m_state.envmap;
+
+    //qDeleteAll(m_normal_shaders);
+    //qDeleteAll(m_textured_shaders);
 }
 
 bool GLRender::initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size)
 {
     if (image.isNull()) {
         static QByteArray data(size.width() * size.height() * 3, 0);
-        m_envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGB,
                           QOpenGLTexture::UInt8, data.constData());
     }
     else
-        m_envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGB,
                           QOpenGLTexture::UInt8, image.constBits());
 
     int err = glGetError();
@@ -219,9 +229,6 @@ void GLRender::render()
     glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (m_envmap)
-        m_envmap->bind(0);
-
     m_vertex_buffer.bind();
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), 0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float),
@@ -229,11 +236,20 @@ void GLRender::render()
 
     bool init_done = false;
     bool texture_enabled = false;
-    for (int i = 0; i < GLShader::NUM_SHADERS; i++) {
-        if (!m_shaders[i])
-            continue;
 
-        if (i && !texture_enabled) {
+    foreach (GLShader *shader, m_normal_shaders) {
+        if (!init_done) {
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            m_index_buffer.bind();
+            init_done = true;
+        }
+
+        shader->render(m_root, &m_state);
+    }
+
+    foreach (GLShader *shader, m_textured_shaders) {
+        if (!texture_enabled) {
             if (init_done)
                 m_vertex_buffer.bind();
 
@@ -253,8 +269,9 @@ void GLRender::render()
             init_done = true;
         }
 
-        m_shaders[i]->render(m_root, &m_state);
+        shader->render(m_root, &m_state);
     }
+
     m_state.resetDirty();
 
     glDisableVertexAttribArray(0);
@@ -263,8 +280,8 @@ void GLRender::render()
     m_index_buffer.release();
     m_vertex_buffer.release();
 
-    if (m_envmap)
-        m_envmap->release();
+    if (m_state.envmap)
+        m_state.envmap->release();
 
     restoreOpenGLState();
 }

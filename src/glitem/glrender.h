@@ -1,7 +1,6 @@
 #ifndef GLRENDER_H
 #define GLRENDER_H
 
-#include "glshader.h"
 #include "renderstate.h"
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
@@ -42,8 +41,8 @@ private:
     GLTransformNode *m_root;
     RenderState m_state;
     QRect m_viewport;
-    GLShader *m_shaders[GLShader::NUM_SHADERS];
-    QOpenGLTexture *m_envmap;
+    QList<GLShader *> m_normal_shaders;
+    QList<GLShader *> m_textured_shaders;
     int m_num_vertex;
 
     struct OpenGLState {

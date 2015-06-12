@@ -10,7 +10,6 @@ struct Light {
     enum { POINT, DIRECTIONAL, SPOT } type;
     QString name;
     QVector3D pos;
-    QVector3D amb;
     QVector3D dif;
     QVector3D spec;
     GLTransformNode *node;

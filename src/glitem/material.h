@@ -1,24 +1,34 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "glshader.h"
 #include <QVector3D>
 #include <QOpenGLTexture>
 
 class QImage;
+class GLShader;
+class Light;
 
 class Material
 {
 public:
-    Material() {}
+    Material() : m_shader(0) {}
     virtual ~Material() {}
 
-    virtual GLShader::ShaderType type() const = 0;
+    GLShader *shader() { return m_shader; }
 
     const QString &name() const { return m_name; }
     void setName(const QString &value) { m_name = value; }
 
-    virtual void init() {}
+    enum InitResult {
+        NORMAL_SHADER, TEXTURED_SHADER, EXIST_SHADER
+    };
+    virtual InitResult init(const QList<Light *> *lights, bool has_env_map) = 0;
+
+protected:
+    typedef QHash<uint, GLShader *> ShaderMap;
+    static ShaderMap m_shaders;
+
+    GLShader *m_shader;
 
 private:
     QString m_name;
@@ -28,9 +38,6 @@ class PhongMaterial : public Material {
 public:
     PhongMaterial();
     virtual ~PhongMaterial();
-
-    virtual GLShader::ShaderType type() const { return m_type; }
-    void setType(GLShader::ShaderType ntype) { m_type = ntype; }
 
     void setMaterial(const QVector3D &nka, const QVector3D &nkd, const QVector3D &nks,
                      float nalpha) {
@@ -48,15 +55,23 @@ public:
     QVector3D &ks() { return m_ks; }
     float &alpha() { return m_alpha; }
 
-    virtual void init();
+    void setEnvMap(float reflectivity) {
+        m_env_alpha = reflectivity;
+        m_env_map = true;
+    }
+
+    float env_alpha() { return m_env_alpha; }
+
+    virtual InitResult init(const QList<Light *> *lights, bool has_env_map);
 
 private:
-    GLShader::ShaderType m_type;
-
     QVector3D m_ka;
     QVector3D m_kd;
     QVector3D m_ks;
     float m_alpha;
+
+    bool m_env_map;
+    float m_env_alpha;
 
     QImage *m_diffuse_texture_image;
     QImage *m_specular_texture_image;

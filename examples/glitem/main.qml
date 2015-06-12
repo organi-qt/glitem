@@ -47,7 +47,6 @@ Window {
             right: "model/lake/lake1_rt.JPG"
             front: "model/lake/lake1_ft.JPG"
             back: "model/lake/lake1_bk.JPG"
-            alpha: 0.3
         }
 //*/
 //*
@@ -55,7 +54,6 @@ Window {
             GLLight {
                 name: "Sun"
                 pos: Qt.vector3d(-1, 1, -1)
-                amb: Qt.vector3d(0, 0, 0)
                 dif: Qt.vector3d(0.5, 0.5, 0.5)
                 spec: Qt.vector3d(0.5, 0.5, 0.5)
             }

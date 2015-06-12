@@ -1,8 +1,12 @@
 #include "material.h"
+#include "glshader.h"
+#include <QHash>
 
+
+Material::ShaderMap Material::m_shaders;
 
 PhongMaterial::PhongMaterial()
-    : m_diffuse_texture_image(0), m_specular_texture_image(0),
+    : m_env_map(false), m_diffuse_texture_image(0), m_specular_texture_image(0),
       m_diffuse_texture(0), m_specular_texture(0)
 {
 
@@ -42,7 +46,7 @@ bool PhongMaterial::loadSpecularTexture(const QString &path, QOpenGLTexture::Wra
     return false;
 }
 
-void PhongMaterial::init()
+Material::InitResult PhongMaterial::init(const QList<Light *> *lights, bool has_env_map)
 {
     if (m_diffuse_texture_image) {
         m_diffuse_texture = new QOpenGLTexture(*m_diffuse_texture_image);
@@ -62,5 +66,31 @@ void PhongMaterial::init()
 
         delete m_specular_texture_image;
         m_specular_texture_image = 0;
+    }
+
+    uint key = 0;
+    if (m_diffuse_texture)
+        key |= 0xff;
+    if (m_specular_texture)
+        key |= 0xff00;
+    if (m_env_map && has_env_map)
+        key |= 0xff0000;
+
+    ShaderMap::iterator it = m_shaders.find(key);
+    if (it == m_shaders.end()) {
+        m_shader = new GLPhongShader(lights,
+                                     m_diffuse_texture != NULL,
+                                     m_specular_texture != NULL,
+                                     m_env_map && has_env_map);
+        m_shaders.insert(key, m_shader);
+
+        if (m_diffuse_texture || m_specular_texture)
+            return TEXTURED_SHADER;
+        else
+            return NORMAL_SHADER;
+    }
+    else {
+        m_shader = it.value();
+        return EXIST_SHADER;
     }
 }
