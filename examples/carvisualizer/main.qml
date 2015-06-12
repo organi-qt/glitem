@@ -20,6 +20,15 @@ Window {
             back: "model/textures/garage/positiveZ.jpg"
         }
 
+        gllight: [
+            GLPointLight {
+                name: "Lamp"
+                position: Qt.vector3d(1000, 1000, 1000)
+                diffuse: Qt.vector3d(1, 1, 1)
+                specular: Qt.vector3d(1, 1, 1)
+            }
+        ]
+
         glmodel: [
             GLJSONLoadModel {
                 file: "model/models/carvisualizer.ferrari_body.json"

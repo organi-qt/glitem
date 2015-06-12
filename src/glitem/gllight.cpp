@@ -3,8 +3,7 @@
 #include "renderstate.h"
 
 GLLight::GLLight(QObject *parent)
-    : QObject(parent), m_pos_dirty(true), m_dif_dirty(true),
-      m_spec_dirty(true), m_state_index(-1)
+    : QObject(parent), m_light(0)
 {
 }
 
@@ -16,62 +15,88 @@ void GLLight::setName(const QString &value)
     }
 }
 
-void GLLight::setPos(const QVector3D &value)
-{
-    if (m_pos != value) {
-        m_pos = value;
-        m_pos_dirty = true;
-        emit posChanged();
-        emit lightChanged();
-    }
-}
-
-void GLLight::setDif(const QVector3D &value)
+void GLLight::setDiffuse(const QVector3D &value)
 {
     if (m_dif != value) {
         m_dif = value;
-        m_dif_dirty = true;
-        emit difChanged();
+        emit diffuseChanged();
         emit lightChanged();
     }
 }
 
-void GLLight::setSpec(const QVector3D &value)
+void GLLight::setLight(Light *value)
+{
+    value->pos = m_pos;
+    value->dif = m_dif;
+    value->spec = m_spec;
+}
+
+void GLLight::setSpecular(const QVector3D &value)
 {
     if (m_spec != value) {
         m_spec = value;
-        m_spec_dirty = true;
-        emit specChanged();
+        emit specularChanged();
         emit lightChanged();
     }
 }
 
-void GLLight::updateState(RenderState *state)
+void GLLight::sync()
 {
-    if (m_state_index == -1) {
-        // first time
-        for (int i = 0; i < state->lights.size(); i++) {
-            if (state->lights[i].light->name == m_name) {
-                m_state_index = i;
-                break;
-            }
-        }
-        // not found
-        if (m_state_index == -1) {
-            qWarning() << "no light found in model with name: " << m_name;
-            m_state_index = -2;
-        }
-    }
-
-    if (m_state_index < -1)
+    if (!m_light)
         return;
 
-    if (m_pos_dirty)
-        state->setLightPos(m_state_index, m_pos);
+    m_light->pos = m_pos;
 
-    if (m_dif_dirty)
-        state->setLightDif(m_state_index, m_dif);
+    if (m_light->dif != m_dif) {
+        m_light->dif = m_dif;
+        m_light->dif_dirty = true;
+    }
 
-    if (m_spec_dirty)
-        state->setLightSpec(m_state_index, m_spec);
+    if (m_light->spec != m_spec) {
+        m_light->spec = m_spec;
+        m_light->spec_dirty = true;
+    }
 }
+
+GLPointLight::GLPointLight(QObject *parent)
+    : GLLight(parent)
+{
+
+}
+
+void GLPointLight::setPosition(const QVector3D &value)
+{
+    if (m_pos != value) {
+        m_pos = value;
+        emit positionChanged();
+        emit lightChanged();
+    }
+}
+
+void GLPointLight::setLight(Light *value)
+{
+    GLLight::setLight(value);
+    value->type = Light::POINT;
+}
+
+GLDirectionalLight::GLDirectionalLight(QObject *parent)
+    : GLLight(parent)
+{
+
+}
+
+void GLDirectionalLight::setDirection(const QVector3D &value)
+{
+    if (m_pos != value) {
+        m_pos = value;
+        emit directionChanged();
+        emit lightChanged();
+    }
+}
+
+void GLDirectionalLight::setLight(Light *value)
+{
+    GLLight::setLight(value);
+    value->type = Light::DIRECTIONAL;
+}
+

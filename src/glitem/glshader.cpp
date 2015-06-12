@@ -357,11 +357,11 @@ void GLPhongShader::updateRenderState(RenderState *s)
 
     Q_ASSERT(m_num_lights <= s->lights.size());
     for (int i = 0; i < m_num_lights; i++) {
-        if (s->lights[i].pos_dirty)
+        if (s->lights[i].final_pos_dirty)
             program()->setUniformValue(m_id_light_pos[i], s->lights[i].final_pos);
-        if (s->lights[i].dif_dirty)
+        if (s->lights[i].light->dif_dirty)
             program()->setUniformValue(m_id_light_dif[i], s->lights[i].light->dif);
-        if (s->lights[i].spec_dirty)
+        if (s->lights[i].light->spec_dirty)
             program()->setUniformValue(m_id_light_spec[i], s->lights[i].light->spec);
     }
 }

@@ -37,6 +37,7 @@ Window {
             GLAssimpLoadModel {
                 file: "qrc:/model/car.dae"
                 //file: "model/SWIM/Car Swim N220711.3DS"
+                //ignoreLight: true
             }
         ]
 /*
@@ -51,12 +52,18 @@ Window {
 //*/
 //*
         gllight: [
-            GLLight {
+            GLDirectionalLight {
                 name: "Sun"
-                pos: Qt.vector3d(-1, 1, -1)
-                dif: Qt.vector3d(0.5, 0.5, 0.5)
-                spec: Qt.vector3d(0.5, 0.5, 0.5)
-            }
+                direction: Qt.vector3d(-1, -1, -1)
+                diffuse: Qt.vector3d(0.5, 0.5, 0.5)
+                specular: Qt.vector3d(0.5, 0.5, 0.5)
+            }/*,
+            GLPointLight {
+                name: "Lamp"
+                position: Qt.vector3d(1000, 1000, 1000)
+                diffuse: Qt.vector3d(0.5, 0.5, 0.5)
+                specular: Qt.vector3d(0.5, 0.5, 0.5)
+            }*/
         ]
 //*/
         GLAnimateNode {

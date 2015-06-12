@@ -17,6 +17,7 @@ class GLAssimpLoadModel : public GLModel
 {
     Q_OBJECT
     Q_PROPERTY(QUrl file READ file WRITE setFile NOTIFY fileChanged)
+    Q_PROPERTY(bool ignoreLight READ ignoreLight WRITE setIgnoreLight NOTIFY ignoreLightChanged)
 public:
     GLAssimpLoadModel(QObject *parent = 0);
     ~GLAssimpLoadModel();
@@ -24,14 +25,19 @@ public:
     QUrl file() { return m_file; }
     void setFile(const QUrl &value);
 
+    bool ignoreLight() { return m_ignore_light; }
+    void setIgnoreLight(bool value);
+
     virtual bool load();
 
 signals:
     void fileChanged();
+    void ignoreLightChanged();
 
 private:
     QUrl m_file;
     QDir m_model_dir;
+    bool m_ignore_light;
 
     const aiScene *m_scene;
 

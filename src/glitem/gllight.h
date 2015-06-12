@@ -5,47 +5,75 @@
 #include <QVector3D>
 #include <QString>
 
-class RenderState;
+class Light;
 
 class GLLight : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-    Q_PROPERTY(QVector3D pos READ pos WRITE setPos NOTIFY posChanged)
-    Q_PROPERTY(QVector3D dif READ dif WRITE setDif NOTIFY difChanged)
-    Q_PROPERTY(QVector3D spec READ spec WRITE setSpec NOTIFY specChanged)
+    Q_PROPERTY(QVector3D diffuse READ diffuse WRITE setDiffuse NOTIFY diffuseChanged)
+    Q_PROPERTY(QVector3D specular READ specular WRITE setSpecular NOTIFY specularChanged)
 public:
     GLLight(QObject *parent = 0);
-    void updateState(RenderState *);
+    void sync();
 
     QString name() { return m_name; }
     void setName(const QString &value);
 
-    QVector3D pos() { return m_pos; }
-    void setPos(const QVector3D &value);
+    QVector3D diffuse() { return m_dif; }
+    void setDiffuse(const QVector3D &value);
 
-    QVector3D dif() { return m_dif; }
-    void setDif(const QVector3D &value);
+    QVector3D specular() { return m_spec; }
+    void setSpecular(const QVector3D &value);
 
-    QVector3D spec() { return m_spec; }
-    void setSpec(const QVector3D &value);
+    virtual void setLight(Light *value);
 
 signals:
     void lightChanged();
     void nameChanged();
-    void posChanged();
-    void difChanged();
-    void specChanged();
+    void diffuseChanged();
+    void specularChanged();
+
+protected:
+    QVector3D m_pos;
 
 private:
     QString m_name;
-    QVector3D m_pos;
     QVector3D m_dif;
     QVector3D m_spec;
-    bool m_pos_dirty;
-    bool m_dif_dirty;
-    bool m_spec_dirty;
-    int m_state_index;
+    Light *m_light;
+};
+
+class GLPointLight : public GLLight
+{
+    Q_OBJECT
+    Q_PROPERTY(QVector3D position READ position WRITE setPosition NOTIFY positionChanged)
+public:
+    GLPointLight(QObject *parent = 0);
+
+    QVector3D position() { return m_pos; }
+    void setPosition(const QVector3D &value);
+
+    virtual void setLight(Light *value);
+
+signals:
+    void positionChanged();
+};
+
+class GLDirectionalLight : public GLLight
+{
+    Q_OBJECT
+    Q_PROPERTY(QVector3D direction READ direction WRITE setDirection NOTIFY directionChanged)
+public:
+    GLDirectionalLight(QObject *parent = 0);
+
+    QVector3D direction() { return m_pos; }
+    void setDirection(const QVector3D &value);
+
+    virtual void setLight(Light *value);
+
+signals:
+    void directionChanged();
 };
 
 #endif // GLLIGHT_H

@@ -10,7 +10,7 @@
 #include <QDebug>
 
 GLAssimpLoadModel::GLAssimpLoadModel(QObject *parent)
-    : GLModel(parent), m_scene(0)
+    : GLModel(parent), m_ignore_light(false), m_scene(0)
 {
 
 }
@@ -25,6 +25,14 @@ void GLAssimpLoadModel::setFile(const QUrl &value)
     if (m_file != value) {
         m_file = value;
         emit fileChanged();
+    }
+}
+
+void GLAssimpLoadModel::setIgnoreLight(bool value)
+{
+    if (m_ignore_light != value) {
+        m_ignore_light = value;
+        emit ignoreLightChanged();
     }
 }
 
@@ -82,7 +90,9 @@ bool GLAssimpLoadModel::load()
     loadPrimitive();
     loadMaterial();
     m_root = loadNode(m_scene->mRootNode);
-    loadLight();
+
+    if (!m_ignore_light)
+        loadLight();
 
     m_scene = NULL;
     return true;

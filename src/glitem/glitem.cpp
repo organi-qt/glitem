@@ -49,6 +49,9 @@ void GLItem::sync()
         };
         m_render = new GLRender(&param);
 
+        if (m_lights.isEmpty())
+           m_render->state()->setLightAmb(QVector3D(1, 1, 1));
+
         if (m_envparam) {
             delete m_envparam;
             m_envparam = 0;
@@ -81,7 +84,7 @@ void GLItem::sync()
     m_render->state()->setOpacity(opacity());
 
     for (int i = 0; i < m_gllights.size(); i++)
-        m_gllights[i]->updateState(m_render->state());
+        m_gllights[i]->sync();
 
     m_render->updateLightFinalPos();
 }
@@ -178,15 +181,29 @@ void GLItem::load()
         return;
     }
 
-    if (m_lights.isEmpty()) {
-        Light *light = new Light;
-        light->pos = QVector3D(1000, 1000, 1000);
-        light->dif = QVector3D(1, 1, 1);
-        light->spec = QVector3D(1, 1, 1);
-        light->type = Light::POINT;
-        light->name = "default_light";
-        light->node = new GLTransformNode(light->name);
-        m_lights.append(light);
+    foreach (GLLight *gllight, m_gllights) {
+        bool found = false;
+        foreach (Light *light, m_lights) {
+            if (gllight->name() == light->name) {
+                // use view node when controled by GLLight
+                view->removeChild(light->node);
+                delete light->node;
+                light->node = view;
+
+                gllight->setLight(light);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            Light *light = new Light;
+            light->name = gllight->name();
+            light->node = view;
+
+            gllight->setLight(light);
+            m_lights.append(light);
+        }
     }
 
     for (int i = 0; i < m_glmaterials.size(); i++)

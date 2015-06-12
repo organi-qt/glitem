@@ -30,10 +30,16 @@ public:
 
     void addChild(GLRenderNode *node) { m_render_children.append(node); }
     void addChild(GLTransformNode *node) { m_transform_children.append(node); }
+
+    void removeChild(GLRenderNode *node) { m_render_children.removeAll(node); }
+    void removeChild(GLTransformNode *node) { m_transform_children.removeAll(node); }
+
     QMatrix4x4 &transformMatrix() { return m_transform; }
     QMatrix4x4 &modelviewMatrix() { return m_modelview_matrix; }
+
     int renderChildCount() { return m_render_children.size(); }
     int transformChildCount() { return m_transform_children.size(); }
+
     GLRenderNode *renderChildAtIndex(int i) { return m_render_children[i]; }
     GLTransformNode *transformChildAtIndex(int i) { return m_transform_children[i]; }
 

@@ -13,6 +13,9 @@ struct Light {
     QVector3D dif;
     QVector3D spec;
     GLTransformNode *node;
+
+    bool dif_dirty;
+    bool spec_dirty;
 };
 
 #endif // LIGHT

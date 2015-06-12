@@ -20,8 +20,11 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
     qmlRegisterType<GLTransform>();
 
     qmlRegisterType<GLAnimateNode>("GLItem", 1, 0, "GLAnimateNode");
-    qmlRegisterType<GLLight>("GLItem", 1, 1, "GLLight");
     qmlRegisterType<GLEnvironment>("GLItem", 1, 1, "GLEnvironment");
+
+    qmlRegisterType<GLPointLight>("GLItem", 1, 1, "GLPointLight");
+    qmlRegisterType<GLDirectionalLight>("GLItem", 1, 1, "GLDirectionalLight");
+    qmlRegisterType<GLLight>();
 
     qmlRegisterType<GLJSONLoadModel>("GLItem", 1, 1, "GLJSONLoadModel");
     qmlRegisterType<GLAssimpLoadModel>("GLItem", 1, 1, "GLAssimpLoadModel");
