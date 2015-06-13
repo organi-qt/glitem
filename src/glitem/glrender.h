@@ -19,6 +19,7 @@ struct RenderParam {
     QList<Material *> *materials;
     QList<Light *> *lights;
     EnvParam *env;
+    bool has_texture_uv;
     int num_vertex;
 };
 
@@ -41,8 +42,8 @@ private:
     GLTransformNode *m_root;
     RenderState m_state;
     QRect m_viewport;
-    QList<GLShader *> m_normal_shaders;
-    QList<GLShader *> m_textured_shaders;
+    QList<GLShader *> m_shaders;
+    bool m_has_texture_uv;
     int m_num_vertex;
 
     struct OpenGLState {

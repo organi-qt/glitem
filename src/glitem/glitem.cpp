@@ -13,7 +13,7 @@
 GLItem::GLItem(QQuickItem *parent)
     : QQuickItem(parent), m_render(0), m_root(0),
       m_status(Null), m_asynchronous(true),
-      m_environment(0), m_envparam(0)
+      m_environment(0), m_envparam(0), m_has_texture_uv(false)
 {
     connect(this, &GLItem::opacityChanged, this, &GLItem::updateWindow);
 }
@@ -45,6 +45,7 @@ void GLItem::sync()
             .materials = &m_materials,
             .lights = &m_lights,
             .env = m_envparam,
+            .has_texture_uv = m_has_texture_uv,
             .num_vertex = m_num_vertex
         };
         m_render = new GLRender(&param);
@@ -251,6 +252,8 @@ void GLItem::load()
     // build texture uv array
     for (int i = 0; i < m_glmodels.size(); i++) {
         GLModel *md = m_glmodels[i];
+        if (md->texturedVertexUV().isEmpty())
+            m_has_texture_uv = true;
         vertex.append(md->texturedVertexUV());
         // free data stored in model
         md->release();

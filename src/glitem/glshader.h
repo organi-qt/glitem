@@ -19,8 +19,11 @@ public:
     void initialize();
     void render(GLTransformNode *root, RenderState *state);
 
+    bool *attributeActivities() { return m_attribute_activities; }
+
 protected:
     GLRenderNode *m_last_node;
+    bool m_attribute_activities[3];
 
     virtual void resolveUniforms() = 0;
     virtual void bind();

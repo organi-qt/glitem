@@ -6,6 +6,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLTexture>
 
+
 #define GLES_FRAG_SHADER_HEADER \
     "#ifdef GL_ES\n" \
     "precision mediump float;\n" \
@@ -22,8 +23,8 @@ void GLShader::initialize()
     m_program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShader());
 
     char const *const *attr = attributeNames();
-    for (int i = 0; attr[i]; ++i) {
-        if (*attr[i])
+    for (int i = 0; i < 3; ++i) {
+        if (attr[i])
             m_program.bindAttributeLocation(attr[i], i);
     }
 
@@ -88,6 +89,9 @@ GLPhongShader::GLPhongShader(const QList<Light *> *lights, bool has_diffuse_text
       m_has_env_map(has_env_map)
 {
     //Q_ASSERT(m_lights->size() > 0);
+    m_attribute_activities[0] = true;
+    m_attribute_activities[1] = true;
+    m_attribute_activities[2] = m_has_diffuse_texture || m_has_diffuse_texture;
 }
 
 GLPhongShader::~GLPhongShader()
@@ -210,7 +214,7 @@ QString GLPhongShader::fragmentShader()
 
 char const *const *GLPhongShader::attributeNames() const {
     static char const *const pattr[] = { "positionIn", "normalIn", 0 };
-    static char const *const tattr[] = { "positionIn", "normalIn", "texcoordIn", 0 };
+    static char const *const tattr[] = { "positionIn", "normalIn", "texcoordIn" };
     if (m_has_diffuse_texture || m_has_specular_texture)
         return tattr;
     else

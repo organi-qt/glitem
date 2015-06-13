@@ -7,6 +7,7 @@
 
 GLRender::GLRender(RenderParam *param)
     : m_root(param->root),
+      m_has_texture_uv(param->has_texture_uv),
       m_num_vertex(param->num_vertex),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
       m_index_buffer(QOpenGLBuffer::IndexBuffer)
@@ -63,22 +64,10 @@ GLRender::GLRender(RenderParam *param)
     m_index_buffer.release();
 
     foreach (Material *material, *param->materials) {
-        Material::InitResult res =
-                material->init(param->lights, m_state.envmap ? true : false);
-        switch (res) {
-        case Material::NORMAL_SHADER:
-            m_normal_shaders.append(material->shader());
-            break;
-        case Material::TEXTURED_SHADER:
-            m_textured_shaders.append(material->shader());
-            break;
-        case Material::EXIST_SHADER:
-            break;
+        if (material->init(param->lights, m_state.envmap ? true : false)) {
+            m_shaders.append(material->shader());
+            material->shader()->initialize();
         }
-    }
-
-    foreach (GLShader *shader, m_normal_shaders + m_textured_shaders) {
-        shader->initialize();
     }
 }
 
@@ -233,42 +222,18 @@ void GLRender::render()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), 0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float),
                           (void *)(3 * sizeof(float)));
+    if (m_has_texture_uv)
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float),
+                              (void *)(m_num_vertex * 6 * sizeof(float)));
+    m_index_buffer.bind();
 
-    bool init_done = false;
-    bool texture_enabled = false;
-
-    foreach (GLShader *shader, m_normal_shaders) {
-        if (!init_done) {
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            m_index_buffer.bind();
-            init_done = true;
+    foreach (GLShader *shader, m_shaders) {
+        for (int i = 0; i < 3; i++) {
+            if (shader->attributeActivities()[i])
+                glEnableVertexAttribArray(i);
+            else
+                glDisableVertexAttribArray(i);
         }
-
-        shader->render(m_root, &m_state);
-    }
-
-    foreach (GLShader *shader, m_textured_shaders) {
-        if (!texture_enabled) {
-            if (init_done)
-                m_vertex_buffer.bind();
-
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float),
-                                  (void *)(m_num_vertex * 6 * sizeof(float)));
-            glEnableVertexAttribArray(2);
-            texture_enabled = true;
-
-            if (init_done)
-                m_index_buffer.bind();
-        }
-
-        if (!init_done) {
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            m_index_buffer.bind();
-            init_done = true;
-        }
-
         shader->render(m_root, &m_state);
     }
 

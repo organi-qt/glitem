@@ -69,6 +69,7 @@ private:
     QVector<ushort> m_index;
     QList<Light *> m_lights;
     QList<Material *> m_materials;
+    bool m_has_texture_uv;
     int m_num_vertex;
 
     bool loadEnvironmentImage(const QUrl &url, QImage &image);

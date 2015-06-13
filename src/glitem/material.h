@@ -19,10 +19,7 @@ public:
     const QString &name() const { return m_name; }
     void setName(const QString &value) { m_name = value; }
 
-    enum InitResult {
-        NORMAL_SHADER, TEXTURED_SHADER, EXIST_SHADER
-    };
-    virtual InitResult init(const QList<Light *> *lights, bool has_env_map) = 0;
+    virtual bool init(const QList<Light *> *lights, bool has_env_map) = 0;
 
 protected:
     typedef QHash<uint, GLShader *> ShaderMap;
@@ -62,7 +59,7 @@ public:
 
     float env_alpha() { return m_env_alpha; }
 
-    virtual InitResult init(const QList<Light *> *lights, bool has_env_map);
+    virtual bool init(const QList<Light *> *lights, bool has_env_map);
 
 private:
     QVector3D m_ka;
