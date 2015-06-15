@@ -3,7 +3,8 @@
 
 #include <QObject>
 #include <QQmlListProperty>
-#include "gltransform.h"
+
+class GLTransform;
 
 class GLAnimateNode : public QObject
 {

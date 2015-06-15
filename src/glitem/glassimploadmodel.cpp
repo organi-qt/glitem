@@ -89,7 +89,11 @@ bool GLAssimpLoadModel::load()
         loadLight();
 
     m_scene = NULL;
-    return true;
+
+    if (name().isEmpty())
+        setName(m_file.fileName());
+
+    return GLModel::load();
 }
 
 void GLAssimpLoadModel::loadPrimitive()

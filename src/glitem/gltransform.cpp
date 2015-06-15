@@ -1,5 +1,6 @@
 #include "gltransform.h"
 
+
 GLScaleBase::GLScaleBase(QObject *parent)
     : GLTransform(parent), m_origin(0, 0, 0), m_scale(1, 1, 1)
 {

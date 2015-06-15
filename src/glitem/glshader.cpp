@@ -60,8 +60,7 @@ void GLShader::render(GLTransformNode *root, RenderState *state)
 void GLShader::renderNode(GLTransformNode *node)
 {
     bool updated = false;
-    for (int i = 0; i < node->renderChildCount(); i++) {
-        GLRenderNode *rnode = node->renderChildAtIndex(i);
+    foreach (GLRenderNode *rnode, node->renderChildren()) {
         if (rnode->material()->shader() == this) {
             if (!updated) {
                 updatePerTansformNode(node);
@@ -74,8 +73,9 @@ void GLShader::renderNode(GLTransformNode *node)
         }
     }
 
-    for (int i = 0; i < node->transformChildCount(); i++)
-        renderNode(node->transformChildAtIndex(i));
+    foreach (GLTransformNode *tnode, node->transformChildren()) {
+        renderNode(tnode);
+    }
 }
 
 GLBasicShader::GLBasicShader(bool has_texture)

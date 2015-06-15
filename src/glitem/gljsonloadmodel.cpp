@@ -219,8 +219,6 @@ bool GLJSONLoadModel::load()
 
     Q_ASSERT(m_material);
 
-    m_root = new GLTransformNode(m_file.fileName());
-
     int nmeshes = 0;
     if (!m_index.isEmpty()) {
         m_meshes.resize(nmeshes + 1);
@@ -229,7 +227,7 @@ bool GLJSONLoadModel::load()
         m_meshes[nmeshes].index_offset = 0;
         m_meshes[nmeshes].index_count = m_index.size();
 
-        m_root->addChild(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
         nmeshes++;
     }
 
@@ -240,10 +238,13 @@ bool GLJSONLoadModel::load()
         m_meshes[nmeshes].index_offset = 0;
         m_meshes[nmeshes].index_count = m_textured_index.size();
 
-        m_root->addChild(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
     }
 
-    return true;
+    if (name().isEmpty())
+        setName(m_file.fileName());
+
+    return GLModel::load();
 }
 
 void GLJSONLoadModel::appendVector(QList<float> *vector, QVector2D &value)

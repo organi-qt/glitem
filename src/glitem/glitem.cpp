@@ -164,8 +164,8 @@ void GLItem::load()
                 m_root = view;
             }
 
-            if (md->root())
-                model->addChild(md->root());
+            model->addChild(md->tnodes());
+            model->addChild(md->rnodes());
 
             foreach (Light *light, md->lights()) {
                 view->addChild(light->node);
@@ -188,7 +188,6 @@ void GLItem::load()
             if (gllight->name() == light->name) {
                 // use view node when controled by GLLight
                 view->removeChild(light->node);
-                delete light->node;
                 light->node = view;
 
                 gllight->setLight(light);
@@ -383,17 +382,18 @@ void GLItem::glnode_clear(QQmlListProperty<GLAnimateNode> *list)
 
 bool GLItem::bindAnimateNode(GLTransformNode *node, GLAnimateNode *anim)
 {
+    bool ret = false;
     if (node->name() == anim->name()) {
         node->setAnimateNode(anim);
-        return true;
+        ret = true;
     }
 
-    for (int i = 0; i < node->transformChildCount(); i++) {
-        if (bindAnimateNode(node->transformChildAtIndex(i), anim))
-            return true;
+    foreach (GLTransformNode *tnode, node->transformChildren()) {
+        if (bindAnimateNode(tnode, anim))
+            ret = true;
     }
 
-    return false;
+    return ret;
 }
 
 void GLItem::calcModelviewMatrix(GLTransformNode *node, const QMatrix4x4 &modelview)
@@ -402,8 +402,9 @@ void GLItem::calcModelviewMatrix(GLTransformNode *node, const QMatrix4x4 &modelv
     if (node->animateNode())
         node->animateNode()->applyTo(&node->modelviewMatrix());
 
-    for (int i = 0; i < node->transformChildCount(); i++)
-        calcModelviewMatrix(node->transformChildAtIndex(i), node->modelviewMatrix());
+    foreach (GLTransformNode *tnode, node->transformChildren()) {
+        calcModelviewMatrix(tnode, node->modelviewMatrix());
+    }
 }
 
 QQmlListProperty<GLLight> GLItem::gllight()

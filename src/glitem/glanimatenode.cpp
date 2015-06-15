@@ -1,4 +1,6 @@
 #include "glanimatenode.h"
+#include "gltransform.h"
+
 
 GLAnimateNode::GLAnimateNode(QObject *parent) :
     QObject(parent)
@@ -16,7 +18,7 @@ int GLAnimateNode::transform_count(QQmlListProperty<GLTransform> *list)
     if (object) {
         return object->m_transforms.count();
     } else {
-        qWarning()<<"Warning: could not find GLAnimateNode to query for transformation count.";
+        qWarning()<<"Warning: could not find GLAnimateNode to count.";
         return 0;
     }
 }
@@ -34,7 +36,7 @@ void GLAnimateNode::transform_append(QQmlListProperty<GLTransform> *list, GLTran
         }
     }
     else
-        qWarning()<<"Warning: could not find GLAnimateNode to add transformation to.";
+        qWarning()<<"Warning: could not find GLAnimateNode to add.";
 }
 
 GLTransform *GLAnimateNode::transform_at(QQmlListProperty<GLTransform> *list, int idx)
@@ -43,7 +45,7 @@ GLTransform *GLAnimateNode::transform_at(QQmlListProperty<GLTransform> *list, in
     if (object) {
         return object->m_transforms.at(idx);
     } else {
-        qWarning()<<"Warning: could not find GLAnimateNode to query for transformations";
+        qWarning()<<"Warning: could not find GLAnimateNode to query.";
         return 0;
     }
     return 0;
@@ -58,7 +60,7 @@ void GLAnimateNode::transform_clear(QQmlListProperty<GLTransform> *list)
         object->transformChanged();
     }
     else
-        qWarning()<<"Warning: could not find GLAnimateNode to clear of transformations";
+        qWarning()<<"Warning: could not find GLAnimateNode to clear.";
 }
 
 void GLAnimateNode::setName(const QString &value)

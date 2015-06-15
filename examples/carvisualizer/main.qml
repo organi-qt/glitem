@@ -47,12 +47,16 @@ Window {
                 material: interior
             },
             GLJSONLoadModel {
+                name: "wheel"
                 file: "model/models/carvisualizer.rim.json"
-                material: bumper
+                material: rim
+                node: 4
             },
             GLJSONLoadModel {
+                name: "wheel"
                 file: "model/models/carvisualizer.wheel.json"
-                material: bumper
+                material: tyre
+                node: 4
             }
         ]
 
@@ -73,10 +77,21 @@ Window {
             },
             GLPhongMaterial {
                 id: bumper
+                color: "#333333"
+                reflectivity: 0.5
+                envMap: true
+                specular: "#777777"
+            },
+            GLPhongMaterial {
+                id: rim
                 color: "#EEEEEE"
                 reflectivity: 0.5
                 envMap: true
                 specular: "#777777"
+            },
+            GLBasicMaterial {
+                id: tyre
+                map: "model/textures/autoparts/wheel.png"
             },
             GLBasicMaterial {
                 id: interior
@@ -88,12 +103,48 @@ Window {
             //name: "view"
             name: "model"
             transform: [
-                GLTranslation{translate: Qt.vector3d(0, -200, -1000)},
-                //GLScale{scale: 1.0 / 100},
+                GLTranslation { translate: Qt.vector3d(0, -200, -1000) },
+                //GLScale { scale: 1.0 / 100 },
                 GLRotation {
                     id: rot
                     axis: Qt.vector3d(0, 1, 0)
                 }
+            ]
+        }
+
+        GLAnimateNode {
+            name: "wheel0"
+            transform: [
+                GLTranslation { translate: Qt.vector3d(148.5, 0, 265.4) },
+                GLRotation {
+                    axis: Qt.vector3d(0, 1, 0)
+                    angle: 180
+                }
+            ]
+        }
+
+        GLAnimateNode {
+            name: "wheel1"
+            transform: [
+                GLTranslation { translate: Qt.vector3d(-151.1, 0, 265.4) }
+            ]
+        }
+
+        GLAnimateNode {
+            name: "wheel2"
+            transform: [
+                GLTranslation { translate: Qt.vector3d(148.5, 0, -243.9) },
+                GLRotation {
+                    axis: Qt.vector3d(0, 1, 0)
+                    angle: 180
+                }
+            ]
+        }
+
+        GLAnimateNode {
+            name: "wheel3"
+            transform: [
+                GLTranslation { translate: Qt.vector3d(-151.1, 0, -243.9) }
             ]
         }
     }
