@@ -1,4 +1,6 @@
 #include "glmodel.h"
+#include <QUrl>
+#include <QDebug>
 
 
 GLModel::GLModel(QObject *parent)
@@ -28,3 +30,15 @@ void GLModel::release()
     m_lights.clear();
 }
 
+bool GLModel::urlToPath(const QUrl &url, QString &path)
+{
+    if (url.scheme() == "file")
+        path = url.toLocalFile();
+    else if (url.scheme() == "qrc")
+        path = ':' + url.path();
+    else {
+        qWarning() << "invalide path: " << url;
+        return false;
+    }
+    return true;
+}

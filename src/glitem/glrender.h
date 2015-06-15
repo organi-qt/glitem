@@ -45,6 +45,7 @@ private:
     QList<GLShader *> m_shaders;
     bool m_has_texture_uv;
     int m_num_vertex;
+    QList<Material *> *m_materials;
 
     struct OpenGLState {
         bool depth_mask;

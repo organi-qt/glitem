@@ -13,7 +13,6 @@ class GLShader
 {
 public:
     GLShader();
-    virtual ~GLShader() {}
     QOpenGLShaderProgram *program() { return &m_program; }
 
     void initialize();
@@ -48,12 +47,38 @@ private:
     QOpenGLShaderProgram m_program;
 };
 
+class GLBasicShader : public GLShader
+{
+public:
+    GLBasicShader(bool has_texture);
+
+protected:
+    virtual void bind();
+    virtual void release();
+
+    virtual void resolveUniforms();
+    virtual void updatePerRenderNode(GLRenderNode *n, GLRenderNode *o);
+
+private:
+    bool m_has_texture;
+    QMatrix4x4 m_projection_matrix;
+
+    int m_id_opacity;
+    int m_id_texture_map;
+    int m_id_combined_matrix;
+
+    virtual QString vertexShader();
+    virtual QString fragmentShader();
+    virtual char const *const *attributeNames() const;
+    virtual void updatePerTansformNode(GLTransformNode *);
+    virtual void updateRenderState(RenderState *);
+};
+
 class GLPhongShader : public GLShader
 {
 public:
     GLPhongShader(const QList<Light *> *lights, bool has_diffuse_texture,
                   bool has_specular_texture, bool has_env_map);
-    virtual ~GLPhongShader();
 
 protected:
     const QList<Light *> *m_lights;

@@ -78,6 +78,127 @@ void GLShader::renderNode(GLTransformNode *node)
         renderNode(node->transformChildAtIndex(i));
 }
 
+GLBasicShader::GLBasicShader(bool has_texture)
+    : GLShader(), m_has_texture(has_texture)
+{
+    m_attribute_activities[0] = true;
+    m_attribute_activities[1] = false;
+    m_attribute_activities[2] = m_has_texture;
+}
+
+QString GLBasicShader::vertexShader()
+{
+    return
+    QString(m_has_texture ?
+    "#define TEXTURED_VERTEX\n" : "") +
+    "uniform highp mat4 combined_matrix;\n"
+    "attribute vec3 positionIn;\n"
+    "#ifdef TEXTURED_VERTEX\n"
+    "attribute vec2 texcoordIn;\n"
+    "varying vec2 texcoord;\n"
+    "#endif\n"
+    "void main() {\n"
+    "#ifdef TEXTURED_VERTEX\n"
+    "    texcoord = texcoordIn;\n"
+    "#endif\n"
+    "    gl_Position = combined_matrix * vec4(positionIn, 1);\n"
+    "}";
+}
+
+QString GLBasicShader::fragmentShader()
+{
+    return
+    GLES_FRAG_SHADER_HEADER
+    + QString(m_has_texture ?
+    "#define USE_MAP\n" : "") +
+    "uniform lowp float opacity;\n"
+    "#ifdef USE_MAP\n"
+    "uniform sampler2D texture_map;\n"
+    "varying vec2 texcoord;\n"
+    "#endif\n"
+    "void main() {\n"
+    "#ifdef USE_MAP\n"
+    "    gl_FragColor = texture2D(texture_map, texcoord) * opacity;\n"
+    "#else\n"
+    "    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0) * opacity;\n"
+    "#endif\n"
+    "}\n";
+}
+
+char const *const *GLBasicShader::attributeNames() const {
+    static char const *const pattr[] = { "positionIn", 0, 0 };
+    static char const *const tattr[] = { "positionIn", 0, "texcoordIn" };
+    if (m_has_texture)
+        return tattr;
+    else
+        return pattr;
+}
+
+void GLBasicShader::resolveUniforms() {
+    m_id_combined_matrix = program()->uniformLocation("combined_matrix");
+    if (m_id_combined_matrix < 0) {
+        qWarning("GLBasicShader does not implement 'uniform highp mat4 combined_matrix;' in its shader");
+    }
+
+    m_id_opacity = program()->uniformLocation("opacity");
+    if (m_id_opacity < 0) {
+        qWarning("GLBasicShader does not implement 'uniform lowp float opacity' in its shader");
+    }
+
+    if (m_has_texture) {
+        m_id_texture_map = program()->uniformLocation("texture_map");
+        if (m_id_texture_map < 0) {
+            qWarning("GLBasicShader does not implement 'uniform sampler2D texture_map;' in its shader");
+        }
+        program()->setUniformValue(m_id_texture_map, 0);
+    }
+}
+
+void GLBasicShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
+{
+    BasicMaterial *pn = static_cast<BasicMaterial *>(n->material());
+    BasicMaterial *po = o ? static_cast<BasicMaterial *>(o->material()) : 0;
+
+    if (m_has_texture && (!po || po->texture() != pn->texture()))
+        pn->texture()->bind(0);
+}
+
+void GLBasicShader::updatePerTansformNode(GLTransformNode *t)
+{
+    QMatrix4x4 &modelview = t->modelviewMatrix();
+    program()->setUniformValue(m_id_combined_matrix, m_projection_matrix * modelview);
+}
+
+void GLBasicShader::updateRenderState(RenderState *s)
+{
+    if (s->projection_matrix_dirty)
+        m_projection_matrix = s->projection_matrix;
+    if (s->opacity_dirty)
+        program()->setUniformValue(m_id_opacity, s->opacity);
+}
+
+void GLBasicShader::bind()
+{
+    BasicMaterial *last =
+            m_last_node ? static_cast<BasicMaterial *>(m_last_node->material()) : 0;
+
+    if (m_has_texture && last)
+        last->texture()->bind(0);
+
+    GLShader::bind();
+}
+
+void GLBasicShader::release()
+{
+    GLShader::release();
+
+    BasicMaterial *last =
+            m_last_node ? static_cast<BasicMaterial *>(m_last_node->material()) : 0;
+
+    if (m_has_texture && last)
+        last->texture()->release();
+}
+
 const int GLPhongShader::m_max_lights;
 
 GLPhongShader::GLPhongShader(const QList<Light *> *lights, bool has_diffuse_texture,
@@ -94,13 +215,10 @@ GLPhongShader::GLPhongShader(const QList<Light *> *lights, bool has_diffuse_text
     m_attribute_activities[2] = m_has_diffuse_texture || m_has_diffuse_texture;
 }
 
-GLPhongShader::~GLPhongShader()
-{
-}
-
 QString GLPhongShader::vertexShader()
 {
-    return QString(m_has_diffuse_texture || m_has_specular_texture ?
+    return
+    QString(m_has_diffuse_texture || m_has_specular_texture ?
     "#define TEXTURED_VERTEX\n" : "") +
     "uniform highp mat4 modelview_matrix;\n"
     "uniform highp mat4 projection_matrix;\n"
@@ -209,7 +327,7 @@ QString GLPhongShader::fragmentShader()
     "    color = mix(color, textureCube(env_map, ER).rgb, env_alpha);\n"
     "#endif\n"
     "    gl_FragColor = vec4(color, 1.0) * opacity;\n"
-    "}";
+    "}\n";
 }
 
 char const *const *GLPhongShader::attributeNames() const {

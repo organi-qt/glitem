@@ -43,6 +43,10 @@ Window {
                 material: bumper
             },
             GLJSONLoadModel {
+                file: "model/models/carvisualizer.ferrari_interior.json"
+                material: interior
+            },
+            GLJSONLoadModel {
                 file: "model/models/carvisualizer.rim.json"
                 material: bumper
             },
@@ -73,6 +77,10 @@ Window {
                 reflectivity: 0.5
                 envMap: true
                 specular: "#777777"
+            },
+            GLBasicMaterial {
+                id: interior
+                map: "model/textures/california/i01.jpg"
             }
         ]
 

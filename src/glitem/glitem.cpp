@@ -252,7 +252,7 @@ void GLItem::load()
     // build texture uv array
     for (int i = 0; i < m_glmodels.size(); i++) {
         GLModel *md = m_glmodels[i];
-        if (md->texturedVertexUV().isEmpty())
+        if (!md->texturedVertexUV().isEmpty())
             m_has_texture_uv = true;
         vertex.append(md->texturedVertexUV());
         // free data stored in model

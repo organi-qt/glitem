@@ -6,6 +6,7 @@
 #include <QUrl>
 
 class Material;
+class BasicMaterial;
 class PhongMaterial;
 
 class GLMaterial : public QObject
@@ -15,6 +16,29 @@ public:
     GLMaterial(QObject *parent = 0);
 
     virtual Material *material() = 0;
+
+protected:
+    bool urlToPath(const QUrl &url, QString &path);
+};
+
+class GLBasicMaterial : public GLMaterial
+{
+    Q_OBJECT
+    Q_PROPERTY(QUrl map READ map WRITE setMap NOTIFY mapChanged)
+public:
+    GLBasicMaterial(QObject *parent = 0);
+
+    QUrl map() { return m_map; }
+    void setMap(const QUrl &value);
+
+    virtual Material *material();
+
+signals:
+    void mapChanged();
+
+private:
+    QUrl m_map;
+    BasicMaterial *m_material;
 };
 
 class GLPhongMaterial : public GLMaterial

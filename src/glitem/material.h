@@ -31,6 +31,22 @@ private:
     QString m_name;
 };
 
+class BasicMaterial : public Material {
+public:
+    BasicMaterial();
+    virtual ~BasicMaterial();
+
+    bool loadTexture(const QString &path, QOpenGLTexture::WrapMode mode);
+    QOpenGLTexture *texture() { return m_texture; }
+
+    virtual bool init(const QList<Light *> *, bool);
+
+private:
+    QImage *m_texture_image;
+    QOpenGLTexture::WrapMode m_texture_mode;
+    QOpenGLTexture *m_texture;
+};
+
 class PhongMaterial : public Material {
 public:
     PhongMaterial();

@@ -9,6 +9,7 @@ GLRender::GLRender(RenderParam *param)
     : m_root(param->root),
       m_has_texture_uv(param->has_texture_uv),
       m_num_vertex(param->num_vertex),
+      m_materials(param->materials),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
       m_index_buffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -76,8 +77,10 @@ GLRender::~GLRender()
     if (m_state.envmap)
         delete m_state.envmap;
 
-    //qDeleteAll(m_normal_shaders);
-    //qDeleteAll(m_textured_shaders);
+    if (m_materials) {
+        qDeleteAll(*m_materials);
+        m_materials->clear();
+    }
 }
 
 bool GLRender::initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size)

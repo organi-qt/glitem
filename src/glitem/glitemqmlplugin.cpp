@@ -29,6 +29,8 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
     qmlRegisterType<GLJSONLoadModel>("GLItem", 1, 1, "GLJSONLoadModel");
     qmlRegisterType<GLAssimpLoadModel>("GLItem", 1, 1, "GLAssimpLoadModel");
     qmlRegisterType<GLModel>();
+
+    qmlRegisterType<GLBasicMaterial>("GLItem", 1, 1, "GLBasicMaterial");
     qmlRegisterType<GLPhongMaterial>("GLItem", 1, 1, "GLPhongMaterial");
     qmlRegisterType<GLMaterial>();
 }

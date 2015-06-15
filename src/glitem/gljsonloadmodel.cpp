@@ -31,14 +31,8 @@ bool GLJSONLoadModel::load()
         return false;
 
     QString path;
-    if (m_file.scheme() == "file")
-        path = m_file.toLocalFile();
-    else if (m_file.scheme() == "qrc")
-        path = ':' + m_file.path();
-    else {
-        qWarning() << "invalide model path: " << m_file;
+    if (!urlToPath(m_file, path))
         return false;
-    }
 
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {

@@ -53,6 +53,8 @@ protected:
     QList<Light *> m_lights;
 
     GLTransformNode *m_root;
+
+    bool urlToPath(const QUrl &url, QString &path);
 };
 
 #endif // GLMODEL_H
