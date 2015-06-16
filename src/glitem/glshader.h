@@ -20,21 +20,35 @@ public:
 
     bool *attributeActivities() { return m_attribute_activities; }
 
+    void hasTransparency() { m_has_transparency = true; }
+    void hasOpaque() { m_has_opaque = true; }
+    bool setBlend(bool mode);
+
 protected:
+    bool m_has_transparency;
+    bool m_has_opaque;
+    bool m_blend_mode;
+
+    float m_global_opacity;
     GLRenderNode *m_last_node;
     bool m_attribute_activities[3];
 
-    virtual void resolveUniforms() = 0;
+    virtual void resolveUniforms();
     virtual void bind();
     virtual void release();
 
+    virtual void updatePerRenderNode(GLRenderNode *, GLRenderNode *);
+    virtual void updatePerTansformNode(GLTransformNode *) {}
+    virtual void updateRenderState(RenderState *);
+
 private:
+    float m_opacity;
+    int m_id_opacity;
+    QOpenGLShaderProgram m_program;
+
     virtual QString vertexShader() = 0;
     virtual QString fragmentShader() = 0;
     virtual char const *const *attributeNames() const = 0;
-    virtual void updatePerRenderNode(GLRenderNode *, GLRenderNode *) {}
-    virtual void updatePerTansformNode(GLTransformNode *) {}
-    virtual void updateRenderState(RenderState *) {}
     void updatePerRenderNode(GLRenderNode *n) {
         updatePerRenderNode(n, m_last_node);
         m_last_node = n;
@@ -43,8 +57,6 @@ private:
     void loadIndexBuffer(GLTransformNode *);
 
     void renderNode(GLTransformNode *);
-
-    QOpenGLShaderProgram m_program;
 };
 
 class GLBasicShader : public GLShader
@@ -63,7 +75,6 @@ private:
     bool m_has_texture;
     QMatrix4x4 m_projection_matrix;
 
-    int m_id_opacity;
     int m_id_texture_map;
     int m_id_combined_matrix;
 
@@ -96,7 +107,6 @@ private:
     bool m_has_specular_texture;
     bool m_has_env_map;
 
-    int m_id_opacity;
     int m_id_modelview_matrix;
     int m_id_projection_matrix;
     int m_id_normal_matrix;

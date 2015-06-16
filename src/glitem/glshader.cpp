@@ -13,7 +13,8 @@
     "#endif\n"
 
 GLShader::GLShader()
-    : m_last_node(0)
+    : m_has_transparency(false), m_has_opaque(false),
+      m_blend_mode(false), m_last_node(0)
 {
 }
 
@@ -39,6 +40,16 @@ void GLShader::initialize()
     m_program.release();
 }
 
+bool GLShader::setBlend(bool mode)
+{
+    if ((mode && !m_has_transparency) ||
+        (!mode && !m_has_opaque))
+        return false;
+
+    m_blend_mode = mode;
+    return true;
+}
+
 void GLShader::bind()
 {
     m_program.bind();
@@ -47,6 +58,31 @@ void GLShader::bind()
 void GLShader::release()
 {
     m_program.release();
+}
+
+void GLShader::resolveUniforms()
+{
+    m_id_opacity = program()->uniformLocation("opacity");
+    if (m_id_opacity < 0) {
+        qWarning("GLShader does not implement 'uniform lowp float opacity' in its shader");
+    }
+}
+
+void GLShader::updateRenderState(RenderState *s)
+{
+    m_global_opacity = s->opacity;
+}
+
+void GLShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
+{
+    Material *pn = n->material();
+    Material *po = o ? o->material() : 0;
+
+    float opacity = m_global_opacity * pn->opacity();
+    if (!po || opacity != m_opacity) {
+        program()->setUniformValue(m_id_opacity, opacity);
+        m_opacity = opacity;
+    }
 }
 
 void GLShader::render(GLTransformNode *root, RenderState *state)
@@ -61,7 +97,8 @@ void GLShader::renderNode(GLTransformNode *node)
 {
     bool updated = false;
     foreach (GLRenderNode *rnode, node->renderChildren()) {
-        if (rnode->material()->shader() == this) {
+        if (rnode->material()->shader() == this &&
+            rnode->material()->transparent() == m_blend_mode) {
             if (!updated) {
                 updatePerTansformNode(node);
                 updated = true;
@@ -135,14 +172,11 @@ char const *const *GLBasicShader::attributeNames() const {
 }
 
 void GLBasicShader::resolveUniforms() {
+    GLShader::resolveUniforms();
+
     m_id_combined_matrix = program()->uniformLocation("combined_matrix");
     if (m_id_combined_matrix < 0) {
         qWarning("GLBasicShader does not implement 'uniform highp mat4 combined_matrix;' in its shader");
-    }
-
-    m_id_opacity = program()->uniformLocation("opacity");
-    if (m_id_opacity < 0) {
-        qWarning("GLBasicShader does not implement 'uniform lowp float opacity' in its shader");
     }
 
     if (m_has_texture) {
@@ -156,6 +190,8 @@ void GLBasicShader::resolveUniforms() {
 
 void GLBasicShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
 {
+    GLShader::updatePerRenderNode(n, o);
+
     BasicMaterial *pn = static_cast<BasicMaterial *>(n->material());
     BasicMaterial *po = o ? static_cast<BasicMaterial *>(o->material()) : 0;
 
@@ -171,10 +207,10 @@ void GLBasicShader::updatePerTansformNode(GLTransformNode *t)
 
 void GLBasicShader::updateRenderState(RenderState *s)
 {
+    GLShader::updateRenderState(s);
+
     if (s->projection_matrix_dirty)
         m_projection_matrix = s->projection_matrix;
-    if (s->opacity_dirty)
-        program()->setUniformValue(m_id_opacity, s->opacity);
 }
 
 void GLBasicShader::bind()
@@ -340,6 +376,8 @@ char const *const *GLPhongShader::attributeNames() const {
 }
 
 void GLPhongShader::resolveUniforms() {
+    GLShader::resolveUniforms();
+
     m_id_modelview_matrix = program()->uniformLocation("modelview_matrix");
     if (m_id_modelview_matrix < 0) {
         qWarning("GLPhongShader does not implement 'uniform highp mat4 modelview_matrix;' in its shader");
@@ -375,11 +413,6 @@ void GLPhongShader::resolveUniforms() {
         if (m_id_light_spec[i] < 0) {
             qWarning("GLPhongShader does not implement 'uniform lowp vec3 light_spec' in its shader");
         }
-    }
-
-    m_id_opacity = program()->uniformLocation("opacity");
-    if (m_id_opacity < 0) {
-        qWarning("GLPhongShader does not implement 'uniform lowp float opacity' in its shader");
     }
 
     m_id_ka = program()->uniformLocation("Ka");
@@ -436,6 +469,8 @@ void GLPhongShader::resolveUniforms() {
 
 void GLPhongShader::updatePerRenderNode(GLRenderNode *n, GLRenderNode *o)
 {
+    GLShader::updatePerRenderNode(n, o);
+
     PhongMaterial *pn = static_cast<PhongMaterial *>(n->material());
     PhongMaterial *po = o ? static_cast<PhongMaterial *>(o->material()) : 0;
 
@@ -467,10 +502,10 @@ void GLPhongShader::updatePerTansformNode(GLTransformNode *t)
 
 void GLPhongShader::updateRenderState(RenderState *s)
 {
+    GLShader::updateRenderState(s);
+
     if (s->projection_matrix_dirty)
         program()->setUniformValue(m_id_projection_matrix, s->projection_matrix);
-    if (s->opacity_dirty)
-        program()->setUniformValue(m_id_opacity, s->opacity);
     if (s->light_amb_dirty)
         program()->setUniformValue(m_id_light_amb, s->light_amb);
 

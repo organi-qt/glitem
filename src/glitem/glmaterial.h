@@ -12,13 +12,31 @@ class PhongMaterial;
 class GLMaterial : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool transparent READ transparent WRITE setTransparent NOTIFY transparentChanged)
+    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged)
 public:
     GLMaterial(QObject *parent = 0);
 
-    virtual Material *material() = 0;
+    bool transparent() { return m_transparent; }
+    void setTransparent(bool value);
+
+    qreal opacity() { return m_opacity; }
+    void setOpacity(qreal value);
+
+    virtual Material *material();
+
+signals:
+    void transparentChanged();
+    void opacityChanged();
 
 protected:
+    Material *m_material;
+
     bool urlToPath(const QUrl &url, QString &path);
+
+private:
+    bool m_transparent;
+    qreal m_opacity;
 };
 
 class GLBasicMaterial : public GLMaterial
@@ -38,7 +56,6 @@ signals:
 
 private:
     QUrl m_map;
-    BasicMaterial *m_material;
 };
 
 class GLPhongMaterial : public GLMaterial
@@ -94,8 +111,6 @@ private:
     QUrl m_specular_map;
     bool m_env_map;
     qreal m_reflectivity;
-
-    PhongMaterial *m_material;
 };
 
 #endif // GLMATERIAL_H

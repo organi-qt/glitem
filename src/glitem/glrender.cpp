@@ -184,7 +184,6 @@ void GLRender::switchOpenGlState()
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glEnable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
 }
 
 void GLRender::restoreOpenGLState()
@@ -230,15 +229,10 @@ void GLRender::render()
                               (void *)(m_num_vertex * 6 * sizeof(float)));
     m_index_buffer.bind();
 
-    foreach (GLShader *shader, m_shaders) {
-        for (int i = 0; i < 3; i++) {
-            if (shader->attributeActivities()[i])
-                glEnableVertexAttribArray(i);
-            else
-                glDisableVertexAttribArray(i);
-        }
-        shader->render(m_root, &m_state);
-    }
+    glDisable(GL_BLEND);
+    doRender(false);
+    glEnable(GL_BLEND);
+    doRender(true);
 
     m_state.resetDirty();
 
@@ -252,6 +246,22 @@ void GLRender::render()
         m_state.envmap->release();
 
     restoreOpenGLState();
+}
+
+void GLRender::doRender(bool blendMode)
+{
+    foreach (GLShader *shader, m_shaders) {
+        if (!shader->setBlend(blendMode))
+            continue;
+
+        for (int i = 0; i < 3; i++) {
+            if (shader->attributeActivities()[i])
+                glEnableVertexAttribArray(i);
+            else
+                glDisableVertexAttribArray(i);
+        }
+        shader->render(m_root, &m_state);
+    }
 }
 
 void GLRender::printOpenGLInfo()

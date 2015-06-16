@@ -22,7 +22,6 @@ struct RenderState {
     QVector<RSLight> lights;
 
     bool projection_matrix_dirty;
-    bool opacity_dirty;
     bool light_amb_dirty;
 
     void setProjectionMatrix(const QMatrix4x4 &value) {
@@ -33,10 +32,8 @@ struct RenderState {
     }
 
     void setOpacity(float value) {
-        if (opacity != value) {
+        if (opacity != value)
             opacity = value;
-            opacity_dirty = true;
-        }
     }
 
     void setLightFinalPos(int i, const QVector3D &value) {
@@ -57,7 +54,6 @@ struct RenderState {
 
     void setDirty() {
         projection_matrix_dirty = true;
-        opacity_dirty = true;
         light_amb_dirty = true;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].final_pos_dirty = true;
@@ -68,7 +64,6 @@ struct RenderState {
 
     void resetDirty() {
         projection_matrix_dirty = false;
-        opacity_dirty = false;
         light_amb_dirty = false;
         for (int i = 0; i < lights.size(); i++) {
             lights[i].final_pos_dirty = false;

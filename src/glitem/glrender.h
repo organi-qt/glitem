@@ -64,7 +64,7 @@ private:
 
     bool initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size);
 
-    void renderNode(GLTransformNode *);
+    void doRender(bool blendMode);
 
     void printOpenGLInfo();
 };

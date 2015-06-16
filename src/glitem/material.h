@@ -11,7 +11,7 @@ class Light;
 class Material
 {
 public:
-    Material() : m_shader(0) {}
+    Material() : m_shader(0), m_transparent(0), m_opacity(1) {}
     virtual ~Material() {}
 
     GLShader *shader() { return m_shader; }
@@ -19,7 +19,13 @@ public:
     const QString &name() const { return m_name; }
     void setName(const QString &value) { m_name = value; }
 
-    virtual bool init(const QList<Light *> *lights, bool has_env_map) = 0;
+    bool transparent() const { return m_transparent; }
+    void setTransparent(bool value) { m_transparent = value; }
+
+    float opacity() const { return m_opacity; }
+    void setOpacity(float value) { m_opacity = value; }
+
+    virtual bool init(const QList<Light *> *, bool);
 
 protected:
     typedef QHash<uint, GLShader *> ShaderMap;
@@ -29,6 +35,8 @@ protected:
 
 private:
     QString m_name;
+    bool m_transparent;
+    float m_opacity;
 };
 
 class BasicMaterial : public Material {

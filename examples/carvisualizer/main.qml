@@ -74,6 +74,8 @@ Window {
                 reflectivity: 1.0
                 envMap: true
                 specular: "#CCCCCC"
+                transparent: true
+                opacity: 0.4
             },
             GLPhongMaterial {
                 id: bumper
@@ -92,6 +94,7 @@ Window {
             GLBasicMaterial {
                 id: tyre
                 map: "model/textures/autoparts/wheel.png"
+                transparent: true
             },
             GLBasicMaterial {
                 id: interior

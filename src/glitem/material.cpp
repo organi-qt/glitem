@@ -5,6 +5,18 @@
 
 Material::ShaderMap Material::m_shaders;
 
+bool Material::init(const QList<Light *> *, bool)
+{
+    if (m_shader) {
+        if (m_transparent)
+            m_shader->hasTransparency();
+        else
+            m_shader->hasOpaque();
+        return true;
+    }
+    return false;
+}
+
 BasicMaterial::BasicMaterial()
     : Material(), m_texture_image(0), m_texture(0)
 {
@@ -30,7 +42,7 @@ bool BasicMaterial::loadTexture(const QString &path, QOpenGLTexture::WrapMode mo
     return false;
 }
 
-bool BasicMaterial::init(const QList<Light *> *, bool)
+bool BasicMaterial::init(const QList<Light *> *a1, bool a2)
 {
     if (m_texture_image) {
         m_texture = new QOpenGLTexture(*m_texture_image);
@@ -46,16 +58,20 @@ bool BasicMaterial::init(const QList<Light *> *, bool)
     if (m_texture)
         key |= 0x0100;
 
+    bool ret;
     ShaderMap::iterator it = m_shaders.find(key);
     if (it == m_shaders.end()) {
         m_shader = new GLBasicShader(m_texture != NULL);
         m_shaders.insert(key, m_shader);
-        return true;
+        ret = true;
     }
     else {
         m_shader = it.value();
-        return false;
+        ret = false;
     }
+
+    Material::init(a1, a2);
+    return ret;
 }
 
 PhongMaterial::PhongMaterial()
@@ -130,6 +146,7 @@ bool PhongMaterial::init(const QList<Light *> *lights, bool has_env_map)
     if (m_env_map && has_env_map)
         key |= 0x04;
 
+    bool ret;
     ShaderMap::iterator it = m_shaders.find(key);
     if (it == m_shaders.end()) {
         m_shader = new GLPhongShader(lights,
@@ -137,10 +154,13 @@ bool PhongMaterial::init(const QList<Light *> *lights, bool has_env_map)
                                      m_specular_texture != NULL,
                                      m_env_map && has_env_map);
         m_shaders.insert(key, m_shader);
-        return true;
+        ret = true;
     }
     else {
         m_shader = it.value();
-        return false;
+        ret = false;
     }
+
+    Material::init(lights, has_env_map);
+    return ret;
 }

@@ -4,9 +4,25 @@
 
 
 GLMaterial::GLMaterial(QObject *parent)
-    : QObject(parent)
+    : QObject(parent), m_material(0), m_transparent(false), m_opacity(1)
 {
 
+}
+
+void GLMaterial::setTransparent(bool value)
+{
+    if (m_transparent != value) {
+        m_transparent = value;
+        emit transparentChanged();
+    }
+}
+
+void GLMaterial::setOpacity(qreal value)
+{
+    if (m_opacity != value) {
+        m_opacity = value;
+        emit opacityChanged();
+    }
 }
 
 bool GLMaterial::urlToPath(const QUrl &url, QString &path)
@@ -18,6 +34,15 @@ bool GLMaterial::urlToPath(const QUrl &url, QString &path)
     else
         return false;
     return true;
+}
+
+Material *GLMaterial::material()
+{
+    if (m_material) {
+        m_material->setTransparent(m_transparent);
+        m_material->setOpacity(m_opacity);
+    }
+    return m_material;
 }
 
 GLBasicMaterial::GLBasicMaterial(QObject *parent)
@@ -37,17 +62,18 @@ void GLBasicMaterial::setMap(const QUrl &value)
 Material *GLBasicMaterial::material()
 {
     if (!m_material) {
-        m_material = new BasicMaterial();
+        BasicMaterial *bm = new BasicMaterial();
         QString path;
         if (urlToPath(m_map, path))
-            m_material->loadTexture(path, QOpenGLTexture::ClampToEdge);
+            bm->loadTexture(path, QOpenGLTexture::ClampToEdge);
+        m_material = bm;
     }
-    return m_material;
+    return GLMaterial::material();
 }
 
 GLPhongMaterial::GLPhongMaterial(QObject *parent)
     : GLMaterial(parent), m_color(255, 255, 255), m_specular(17, 17, 17),
-      m_shininess(30), m_env_map(false), m_reflectivity(1), m_material(0)
+      m_shininess(30), m_env_map(false), m_reflectivity(1)
 {
 
 }
@@ -111,8 +137,8 @@ void GLPhongMaterial::setReflectivity(qreal value)
 Material *GLPhongMaterial::material()
 {
     if (!m_material) {
-        m_material = new PhongMaterial();
-        m_material->setMaterial(
+        PhongMaterial *pm = new PhongMaterial();
+        pm->setMaterial(
                     QVector3D(),
                     QVector3D(m_color.redF(), m_color.greenF(), m_color.blueF()),
                     QVector3D(m_specular.redF(), m_specular.greenF(), m_specular.blueF()),
@@ -120,13 +146,15 @@ Material *GLPhongMaterial::material()
                     );
 
         if (m_env_map)
-            m_material->setEnvMap(m_reflectivity);
+            pm->setEnvMap(m_reflectivity);
 
         QString path;
         if (urlToPath(m_map, path))
-            m_material->loadDiffuseTexture(path, QOpenGLTexture::ClampToEdge);
+            pm->loadDiffuseTexture(path, QOpenGLTexture::ClampToEdge);
         if (urlToPath(m_specular_map, path))
-            m_material->loadSpecularTexture(path, QOpenGLTexture::ClampToEdge);
+            pm->loadSpecularTexture(path, QOpenGLTexture::ClampToEdge);
+
+        m_material = pm;
     }
-    return m_material;
+    return GLMaterial::material();
 }
