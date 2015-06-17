@@ -18,7 +18,8 @@ SOURCES += \
     glassimploadmodel.cpp \
     glmodel.cpp \
     gljsonloadmodel.cpp \
-    material.cpp
+    material.cpp \
+    gldatamodel.cpp
 
 HEADERS += \
     glshader.h \
@@ -39,7 +40,8 @@ HEADERS += \
     glassimploadmodel.h \
     mesh.h \
     light.h \
-    renderstate.h
+    renderstate.h \
+    gldatamodel.h
 
 CONFIG += link_pkgconfig
 PKGCONFIG += assimp

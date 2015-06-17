@@ -2,7 +2,7 @@
 #define MESH
 
 struct Mesh {
-    enum { NORMAL, TEXTURED } type;
+    enum Type { NORMAL, TEXTURED } type;
     int index_offset;
     int index_count;
 };

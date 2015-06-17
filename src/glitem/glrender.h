@@ -52,6 +52,8 @@ private:
         bool depth_test;
         bool cull_face;
         bool blend;
+        int blend_src;
+        int blend_dst;
     };
     OpenGLState m_opengl_state;
 

@@ -169,14 +169,9 @@ void GLRender::saveOpenGLState()
         m_opengl_state.blend = true;
     else
         m_opengl_state.blend = false;
-/*
-    GLboolean cmask[4];
-    glGetBooleanv(GL_COLOR_WRITEMASK, cmask);
-    qDebug() << "cmask: r=" << cmask[0] << " g=" << cmask[1] << " b=" << cmask[2]
-             << " a=" << cmask[3];
-*/
-    //glGetBooleanv(GL_MULTISAMPLE, &value);
-    //qDebug() << "GL_MULTISAMPLE=" << value;
+
+    glGetIntegerv(GL_BLEND_DST, &m_opengl_state.blend_dst);
+    glGetIntegerv(GL_BLEND_SRC, &m_opengl_state.blend_src);
 }
 
 void GLRender::switchOpenGlState()
@@ -207,6 +202,8 @@ void GLRender::restoreOpenGLState()
         glEnable(GL_BLEND);
     else
         glDisable(GL_BLEND);
+
+    glBlendFunc(m_opengl_state.blend_src, m_opengl_state.blend_dst);
 }
 
 void GLRender::render()
@@ -229,9 +226,7 @@ void GLRender::render()
                               (void *)(m_num_vertex * 6 * sizeof(float)));
     m_index_buffer.bind();
 
-    glDisable(GL_BLEND);
-    doRender(false);
-    glEnable(GL_BLEND);
+    doRender(false);    
     doRender(true);
 
     m_state.resetDirty();
@@ -250,9 +245,20 @@ void GLRender::render()
 
 void GLRender::doRender(bool blendMode)
 {
+    bool init_blend = false;
     foreach (GLShader *shader, m_shaders) {
         if (!shader->setBlend(blendMode))
             continue;
+
+        if (!init_blend) {
+            if (blendMode) {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            }
+            else
+                glDisable(GL_BLEND);
+            init_blend = true;
+        }
 
         for (int i = 0; i < 3; i++) {
             if (shader->attributeActivities()[i])

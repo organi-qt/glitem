@@ -2,6 +2,7 @@
 #include "glitem.h"
 #include "gljsonloadmodel.h"
 #include "glassimploadmodel.h"
+#include "gldatamodel.h"
 #include "gltransform.h"
 #include "glmaterial.h"
 #include "glanimatenode.h"
@@ -28,6 +29,7 @@ void GLItemQmlPlugin::registerTypes(const char *uri)
 
     qmlRegisterType<GLJSONLoadModel>("GLItem", 1, 1, "GLJSONLoadModel");
     qmlRegisterType<GLAssimpLoadModel>("GLItem", 1, 1, "GLAssimpLoadModel");
+    qmlRegisterType<GLDataModel>("GLItem", 1, 1, "GLDataModel");
     qmlRegisterType<GLModel>();
 
     qmlRegisterType<GLBasicMaterial>("GLItem", 1, 1, "GLBasicMaterial");

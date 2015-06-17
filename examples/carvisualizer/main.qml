@@ -57,6 +57,22 @@ Window {
                 file: "model/models/carvisualizer.wheel.json"
                 material: tyre
                 node: 4
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.garage.json"
+                material: garage
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.floor.json"
+                material: floor
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.floor_shadow.json"
+                material: floor_shadow
+            },
+            GLJSONLoadModel {
+                file: "model/models/carvisualizer.car_shadow.json"
+                material: car_shadow
             }
         ]
 
@@ -99,6 +115,24 @@ Window {
             GLBasicMaterial {
                 id: interior
                 map: "model/textures/california/i01.jpg"
+            },
+            GLBasicMaterial {
+                id: garage
+                map: "model/textures/garage/garage.jpg"
+            },
+            GLBasicMaterial {
+                id: floor
+                map: "model/textures/garage/floor.jpg"
+            },
+            GLBasicMaterial {
+                id: floor_shadow
+                map: "model/textures/garage/floorShadow.png"
+                transparent: true
+            },
+            GLBasicMaterial {
+                id: car_shadow
+                map: "model/textures/california/s01.png"
+                transparent: true
             }
         ]
 
@@ -106,7 +140,7 @@ Window {
             //name: "view"
             name: "model"
             transform: [
-                GLTranslation { translate: Qt.vector3d(0, -200, -1000) },
+                GLTranslation { translate: Qt.vector3d(0, -300, -1000) },
                 //GLScale { scale: 1.0 / 100 },
                 GLRotation {
                     id: rot
@@ -157,7 +191,7 @@ Window {
         property: "angle"
         from: 0
         to: 360
-        duration: 10000
+        duration: 15000
         running: true
         loops: Animation.Infinite
     }
