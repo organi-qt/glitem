@@ -3,7 +3,7 @@
 #include "renderstate.h"
 
 GLLight::GLLight(QObject *parent)
-    : QObject(parent), m_light(0)
+    : QObject(parent), m_light(0), m_view(false)
 {
 }
 
@@ -36,6 +36,15 @@ void GLLight::setSpecular(const QVector3D &value)
     if (m_spec != value) {
         m_spec = value;
         emit specularChanged();
+        emit lightChanged();
+    }
+}
+
+void GLLight::setView(bool value)
+{
+    if (m_view != value) {
+        m_view = value;
+        emit viewChanged();
         emit lightChanged();
     }
 }

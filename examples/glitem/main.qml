@@ -57,13 +57,15 @@ Window {
                 direction: Qt.vector3d(-1, -1, -1)
                 diffuse: Qt.vector3d(0.5, 0.5, 0.5)
                 specular: Qt.vector3d(0.5, 0.5, 0.5)
-            }/*,
+                view: true
+            },
             GLPointLight {
                 name: "Lamp"
                 position: Qt.vector3d(1000, 1000, 1000)
                 diffuse: Qt.vector3d(0.5, 0.5, 0.5)
                 specular: Qt.vector3d(0.5, 0.5, 0.5)
-            }*/
+                view: true
+            }
         ]
 //*/
         GLAnimateNode {

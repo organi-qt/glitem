@@ -168,7 +168,7 @@ void GLItem::load()
             model->addChild(md->rnodes());
 
             foreach (Light *light, md->lights()) {
-                view->addChild(light->node);
+                model->addChild(light->node);
             }
             m_lights.append(md->lights());
 
@@ -187,8 +187,11 @@ void GLItem::load()
         foreach (Light *light, m_lights) {
             if (gllight->name() == light->name) {
                 // use view node when controled by GLLight
-                view->removeChild(light->node);
-                light->node = view;
+                model->removeChild(light->node);
+                if (gllight->view())
+                    light->node = view;
+                else
+                    light->node = model;
 
                 gllight->setLight(light);
                 found = true;
@@ -199,7 +202,10 @@ void GLItem::load()
         if (!found) {
             Light *light = new Light;
             light->name = gllight->name();
-            light->node = view;
+            if (gllight->view())
+                light->node = view;
+            else
+                light->node = model;
 
             gllight->setLight(light);
             m_lights.append(light);

@@ -23,9 +23,16 @@ Window {
         gllight: [
             GLPointLight {
                 name: "Lamp"
-                position: Qt.vector3d(1000, 1000, 1000)
-                diffuse: Qt.vector3d(1, 1, 1)
-                specular: Qt.vector3d(1, 1, 1)
+                position: Qt.vector3d(0, 0, 0)
+                diffuse: Qt.vector3d(0.8, 0.8, 0.8)
+                specular: Qt.vector3d(0.8, 0.8, 0.8)
+                view: true
+            },
+            GLDirectionalLight {
+                name: "Sun"
+                direction: Qt.vector3d(0, -1, 0)
+                diffuse: Qt.vector3d(0.8, 0.8, 0.8)
+                specular: Qt.vector3d(0.8, 0.8, 0.8)
             }
         ]
 
