@@ -170,8 +170,8 @@ void GLRender::saveOpenGLState()
     else
         m_opengl_state.blend = false;
 
-    glGetIntegerv(GL_BLEND_DST, &m_opengl_state.blend_dst);
-    glGetIntegerv(GL_BLEND_SRC, &m_opengl_state.blend_src);
+    glGetIntegerv(GL_BLEND_DST_ALPHA, &m_opengl_state.blend_dst);
+    glGetIntegerv(GL_BLEND_SRC_ALPHA, &m_opengl_state.blend_src);
 }
 
 void GLRender::switchOpenGlState()

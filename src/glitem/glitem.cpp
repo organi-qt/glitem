@@ -152,7 +152,7 @@ void GLItem::load()
     m_status = Loading;
     emit statusChanged();
 
-    GLTransformNode *view, *model;
+    GLTransformNode *view = NULL, *model = NULL;
     for (int i = 0; i < m_glmodels.size(); i++) {
         GLModel *md = m_glmodels[i];
 
