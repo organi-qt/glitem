@@ -27,9 +27,9 @@ GLRender::GLRender(RenderParam *param)
         m_state.envmap = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
         m_state.envmap->setSize(env->width, env->height);
         if (QOpenGLContext::currentContext()->isOpenGLES())
-            m_state.envmap->setFormat(QOpenGLTexture::RGBFormat);
+            m_state.envmap->setFormat(QOpenGLTexture::RGBAFormat);
         else
-            m_state.envmap->setFormat(QOpenGLTexture::RGB32F);
+            m_state.envmap->setFormat(QOpenGLTexture::RGBA32F);
         m_state.envmap->setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
         m_state.envmap->setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
         //m_state.envmap->setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
@@ -87,11 +87,11 @@ bool GLRender::initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, Q
 {
     if (image.isNull()) {
         static QByteArray data(size.width() * size.height() * 3, 0);
-        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGBA,
                           QOpenGLTexture::UInt8, data.constData());
     }
     else
-        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGB,
+        m_state.envmap->setData(0, 0, face, QOpenGLTexture::RGBA,
                           QOpenGLTexture::UInt8, image.constBits());
 
     int err = glGetError();

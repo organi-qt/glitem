@@ -138,7 +138,7 @@ bool GLItem::loadEnvironmentImage(const QUrl &url, QImage &image)
             Q_ASSERT(!m_envparam->width || m_envparam->width == image.width());
             Q_ASSERT(!m_envparam->height || m_envparam->height == image.height());
 
-            image = image.convertToFormat(QImage::Format_RGB888);
+            image = image.convertToFormat(QImage::Format_RGBA8888);
             m_envparam->width = image.width();
             m_envparam->height = image.height();
             return true;
