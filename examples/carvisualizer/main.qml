@@ -147,7 +147,7 @@ Window {
             //name: "view"
             name: "model"
             transform: [
-                GLTranslation { translate: Qt.vector3d(0, -300, -1000) },
+                GLTranslation { translate: Qt.vector3d(0, -250, -800) },
                 //GLScale { scale: 1.0 / 100 },
                 GLRotation {
                     id: rot
