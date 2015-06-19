@@ -19,6 +19,7 @@ class GLModel : public QObject
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(GLMaterial *material READ material WRITE setMaterial NOTIFY materialChanged)
     Q_PROPERTY(int node READ node WRITE setNode NOTIFY nodeChanged)
+    Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
 public:
     GLModel(QObject *parent = 0);
 
@@ -30,6 +31,9 @@ public:
 
     int node() { return m_node; }
     void setNode(int value);
+
+    bool visible() { return m_visible; }
+    void setVisible(bool value);
 
     QList<float> &vertex() { return m_vertex; }
     QList<ushort> &index() { return m_index; }
@@ -45,11 +49,14 @@ public:
 
     virtual bool load();
     virtual void release();
+    virtual void sync();
 
 signals:
+    void modelChanged();
     void nameChanged();
     void materialChanged();
     void nodeChanged();
+    void visibleChanged();
 
 protected:
     GLMaterial *m_material;
@@ -73,6 +80,7 @@ protected:
 private:
     QString m_name;
     int m_node;
+    bool m_visible;
 };
 
 #endif // GLMODEL_H

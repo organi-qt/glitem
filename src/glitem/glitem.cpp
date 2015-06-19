@@ -84,10 +84,14 @@ void GLItem::sync()
 
     m_render->state()->setOpacity(opacity());
 
-    for (int i = 0; i < m_gllights.size(); i++)
-        m_gllights[i]->sync();
-
+    foreach (GLLight *light, m_gllights) {
+        light->sync();
+    }
     m_render->updateLightFinalPos();
+
+    foreach (GLModel *model, m_glmodels) {
+        model->sync();
+    }
 }
 
 void GLItem::cleanup()
@@ -492,8 +496,11 @@ void GLItem::glmodel_append(QQmlListProperty<GLModel> *list, GLModel *item)
     if (object) {
         pmodels = &object->m_glmodels;
 
-        if (!pmodels->contains(item))
+        if (!pmodels->contains(item)) {
             pmodels->append(item);
+            connect(item, &GLModel::modelChanged,
+                    object, &GLItem::updateWindow);
+        }
     }
     else
         qWarning()<<"Warning: could not find GLItem to add model to.";

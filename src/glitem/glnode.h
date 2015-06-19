@@ -11,13 +11,17 @@ class Material;
 class GLNode
 {
 public:
-    GLNode() : m_ref_count(0) {}
+    GLNode() : m_ref_count(0), m_visible(true) {}
 
     int incRef() { return m_ref_count++; }
     int decRef() { return --m_ref_count; }
 
+    bool visible() { return m_visible; }
+    void setVisible(bool value) { m_visible = value; }
+
 private:
     int m_ref_count;
+    bool m_visible;
 };
 
 class GLRenderNode : public GLNode

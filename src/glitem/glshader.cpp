@@ -95,10 +95,14 @@ void GLShader::render(GLTransformNode *root, RenderState *state)
 
 void GLShader::renderNode(GLTransformNode *node)
 {
+    if (!node->visible())
+        return;
+
     bool updated = false;
     foreach (GLRenderNode *rnode, node->renderChildren()) {
         if (rnode->material()->shader() == this &&
-            rnode->material()->transparent() == m_blend_mode) {
+            rnode->material()->transparent() == m_blend_mode &&
+            rnode->visible()) {
             if (!updated) {
                 updatePerTansformNode(node);
                 updated = true;

@@ -5,7 +5,7 @@
 
 
 GLModel::GLModel(QObject *parent)
-    : QObject(parent), m_material(0), m_root(0), m_node(0)
+    : QObject(parent), m_material(0), m_root(0), m_node(0), m_visible(true)
 {
 
 }
@@ -34,6 +34,15 @@ void GLModel::setNode(int value)
     }
 }
 
+void GLModel::setVisible(bool value)
+{
+    if (m_visible != value) {
+        m_visible = value;
+        emit visibleChanged();
+        emit modelChanged();
+    }
+}
+
 void GLModel::release()
 {
     m_vertex.clear();
@@ -50,8 +59,15 @@ void GLModel::release()
 bool GLModel::load()
 {
     if (!m_node) {
-        if (m_root)
+        if (m_root) {
             m_tnodes.append(m_root);
+            m_root->setVisible(m_visible);
+        }
+
+        foreach (GLRenderNode *rnode, m_rnodes) {
+            rnode->setVisible(m_visible);
+        }
+
         return true;
     }
 
@@ -59,9 +75,12 @@ bool GLModel::load()
         GLTransformNode *root = new GLTransformNode(m_name + QString::number(i));
         if (m_root)
             root->addChild(m_root);
-        root->addChild(rnodes());
+        root->addChild(m_rnodes);
+        root->setVisible(m_visible);
         m_tnodes.append(root);
     }
+    m_rnodes.clear();
+
     return true;
 }
 
@@ -76,4 +95,15 @@ bool GLModel::urlToPath(const QUrl &url, QString &path)
         return false;
     }
     return true;
+}
+
+void GLModel::sync()
+{
+    foreach (GLTransformNode *tnode, m_tnodes) {
+        tnode->setVisible(m_visible);
+    }
+
+    foreach (GLRenderNode *rnode, m_rnodes) {
+        rnode->setVisible(m_visible);
+    }
 }
