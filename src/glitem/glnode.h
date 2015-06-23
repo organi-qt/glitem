@@ -27,12 +27,13 @@ private:
 class GLRenderNode : public GLNode
 {
 public:
-    GLRenderNode(Mesh *nmesh, Material *nmaterial)
+    GLRenderNode(Mesh *nmesh, Material *nmaterial = 0)
         : GLNode(), m_mesh(nmesh), m_material(nmaterial)
     {}
 
     Mesh *mesh() { return m_mesh; }
     Material *material() { return m_material; }
+    void setMaterial(Material *value) { m_material = value; }
 
 private:
     Mesh *m_mesh;

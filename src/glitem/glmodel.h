@@ -81,6 +81,10 @@ private:
     QString m_name;
     int m_node;
     bool m_visible;
+    bool m_visible_dirty;
+    bool m_material_dirty;
+
+    void updateMaterial(GLTransformNode *);
 };
 
 #endif // GLMODEL_H

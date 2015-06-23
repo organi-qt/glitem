@@ -227,7 +227,7 @@ bool GLJSONLoadModel::load()
         m_meshes[nmeshes].index_offset = 0;
         m_meshes[nmeshes].index_count = m_index.size();
 
-        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes]));
         nmeshes++;
     }
 
@@ -238,7 +238,7 @@ bool GLJSONLoadModel::load()
         m_meshes[nmeshes].index_offset = 0;
         m_meshes[nmeshes].index_count = m_textured_index.size();
 
-        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes], m_material->material()));
+        m_rnodes.append(new GLRenderNode(&m_meshes[nmeshes]));
     }
 
     if (name().isEmpty())

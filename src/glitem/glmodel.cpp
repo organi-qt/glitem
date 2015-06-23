@@ -1,11 +1,13 @@
 #include "glmodel.h"
 #include "glnode.h"
+#include "glmaterial.h"
 #include <QUrl>
 #include <QDebug>
 
 
 GLModel::GLModel(QObject *parent)
-    : QObject(parent), m_material(0), m_root(0), m_node(0), m_visible(true)
+    : QObject(parent), m_material(0), m_root(0), m_node(0),
+      m_visible(true), m_visible_dirty(false), m_material_dirty(false)
 {
 
 }
@@ -22,7 +24,9 @@ void GLModel::setMaterial(GLMaterial *value)
 {
     if (m_material != value) {
         m_material = value;
+        m_material_dirty = true;
         emit materialChanged();
+        emit modelChanged();
     }
 }
 
@@ -38,6 +42,7 @@ void GLModel::setVisible(bool value)
 {
     if (m_visible != value) {
         m_visible = value;
+        m_visible_dirty = true;
         emit visibleChanged();
         emit modelChanged();
     }
@@ -99,11 +104,38 @@ bool GLModel::urlToPath(const QUrl &url, QString &path)
 
 void GLModel::sync()
 {
-    foreach (GLTransformNode *tnode, m_tnodes) {
-        tnode->setVisible(m_visible);
+    if (m_visible_dirty) {
+        foreach (GLTransformNode *tnode, m_tnodes) {
+            tnode->setVisible(m_visible);
+        }
+
+        foreach (GLRenderNode *rnode, m_rnodes) {
+            rnode->setVisible(m_visible);
+        }
+
+        m_visible_dirty = false;
     }
 
-    foreach (GLRenderNode *rnode, m_rnodes) {
-        rnode->setVisible(m_visible);
+    if (m_material_dirty) {
+        foreach (GLTransformNode *tnode, m_tnodes) {
+            updateMaterial(tnode);
+        }
+
+        foreach (GLRenderNode *rnode, m_rnodes) {
+            rnode->setMaterial(m_material->material());
+        }
+
+        m_material_dirty = false;
+    }
+}
+
+void GLModel::updateMaterial(GLTransformNode *n)
+{
+    foreach (GLRenderNode *rnode, n->renderChildren()) {
+        rnode->setMaterial(m_material->material());
+    }
+
+    foreach (GLTransformNode *tnode, n->transformChildren()) {
+        updateMaterial(tnode);
     }
 }
