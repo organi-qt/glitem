@@ -216,8 +216,24 @@ void GLItem::load()
         }
     }
 
-    for (int i = 0; i < m_glmaterials.size(); i++)
-        m_materials.append(m_glmaterials[i]->material());
+    for (int i = 0; i < m_glmaterials.size(); i++) {
+        Material *material = m_glmaterials[i]->material();
+        if (!material->name().isEmpty()) {
+            Material *fm = 0;
+            foreach (Material *m, m_materials) {
+                if (material->name() == m->name()) {
+                    fm = m;
+                    break;
+                }
+            }
+            if (fm) {
+                replaceMaterial(m_root, fm, material);
+                m_materials.removeOne(fm);
+                delete fm;
+            }
+        }
+        m_materials.append(material);
+    }
 
     QList<float> vertex;
     QList<ushort> index;
@@ -303,6 +319,18 @@ void GLItem::load()
 
     m_status = Ready;
     emit statusChanged();
+}
+
+void GLItem::replaceMaterial(GLTransformNode *node, Material *om, Material *nm)
+{
+    foreach (GLRenderNode *rnode, node->renderChildren()) {
+        if (rnode->material() == om)
+            rnode->setMaterial(nm);
+    }
+
+    foreach (GLTransformNode *tnode, node->transformChildren()) {
+        replaceMaterial(tnode, om, nm);
+    }
 }
 
 class AsyncLoadThread : public QThread

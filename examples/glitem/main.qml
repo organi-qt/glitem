@@ -41,7 +41,7 @@ Window {
                 //material: body
             }
         ]
-/*
+//*
         environment: GLEnvironment {
             top: "model/lake/lake1_up.JPG"
             bottom: "model/lake/lake1_dn.JPG"
@@ -72,8 +72,31 @@ Window {
         glmaterial: [
             GLPhongMaterial {
                 id: body
+                name: "_1___Default-material"
                 color: "#990000"
+                reflectivity: 0.1
+                envMap: true
                 specular: "#CCCCCC"
+            },
+            GLPhongMaterial {
+                id: glass
+                name: "_1-material"
+                color: "#FFFFFF"
+                reflectivity: 1.0
+                envMap: true
+                specular: "#CCCCCC"
+                transparent: true
+                opacity: 0.4
+            },
+            GLPhongMaterial {
+                id: light
+                name: "_5___Default2-material"
+                color: "#FFFFFF"
+                reflectivity: 1.0
+                envMap: true
+                specular: "#CCCCCC"
+                transparent: true
+                opacity: 0.4
             }
         ]
 
@@ -95,7 +118,7 @@ Window {
             transform: [
                 GLTranslation {
                     id: trans
-                    translate: Qt.vector3d(5, 0, 0)
+                    //translate: Qt.vector3d(5, 0, 0)
                 }
             ]
         }
@@ -119,7 +142,7 @@ Window {
         running: true
         loops: Animation.Infinite
     }
-
+/*
     SequentialAnimation {
         NumberAnimation {
             target: scl
@@ -159,6 +182,7 @@ Window {
         running: true
         loops: Animation.Infinite
     }
+//*/
 /*
     SequentialAnimation {
         NumberAnimation {

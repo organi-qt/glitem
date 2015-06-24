@@ -9,6 +9,14 @@ GLMaterial::GLMaterial(QObject *parent)
 
 }
 
+void GLMaterial::setName(const QString &value)
+{
+    if (m_name != value) {
+        m_name = value;
+        emit nameChanged();
+    }
+}
+
 void GLMaterial::setTransparent(bool value)
 {
     if (m_transparent != value) {
@@ -39,6 +47,7 @@ bool GLMaterial::urlToPath(const QUrl &url, QString &path)
 Material *GLMaterial::material()
 {
     if (m_material) {
+        m_material->setName(m_name);
         m_material->setTransparent(m_transparent);
         m_material->setOpacity(m_opacity);
     }

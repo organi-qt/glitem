@@ -207,6 +207,7 @@ void GLAssimpLoadModel::loadMaterial()
         aiString name;
         if (material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS)
             pm->setName(name.C_Str());
+        //qDebug() << "mat name" << name.C_Str();
 
         pm->setMaterial(
                 QVector3D(amb.r, amb.g, amb.b),

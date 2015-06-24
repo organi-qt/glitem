@@ -73,6 +73,7 @@ private:
     int m_num_vertex;
 
     bool loadEnvironmentImage(const QUrl &url, QImage &image);
+    void replaceMaterial(GLTransformNode *node, Material *om, Material *nm);
 
     static int glnode_count(QQmlListProperty<GLAnimateNode> *list);
     static void glnode_append(QQmlListProperty<GLAnimateNode> *list, GLAnimateNode *);
