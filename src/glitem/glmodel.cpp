@@ -117,12 +117,14 @@ void GLModel::sync()
     }
 
     if (m_material_dirty) {
-        foreach (GLTransformNode *tnode, m_tnodes) {
-            updateMaterial(tnode);
-        }
+        if (m_material) {
+            foreach (GLTransformNode *tnode, m_tnodes) {
+                updateMaterial(tnode);
+            }
 
-        foreach (GLRenderNode *rnode, m_rnodes) {
-            rnode->setMaterial(m_material->material());
+            foreach (GLRenderNode *rnode, m_rnodes) {
+                rnode->setMaterial(m_material->material());
+            }
         }
 
         m_material_dirty = false;

@@ -82,7 +82,10 @@ bool GLAssimpLoadModel::load()
     m_model_dir.cdUp();
 
     loadPrimitive();
-    loadMaterial();
+
+    if (!m_material)
+        loadMaterial();
+
     m_root = loadNode(m_scene->mRootNode);
 
     if (!m_ignore_light)
@@ -227,7 +230,7 @@ GLTransformNode *GLAssimpLoadModel::loadNode(aiNode *node)
     for (uint i = 0; i < node->mNumMeshes; i++) {
         GLRenderNode *rnode = new GLRenderNode(
                     &m_meshes[node->mMeshes[i]],
-                    m_materials[m_scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]
+                    m_material ? 0 : m_materials[m_scene->mMeshes[node->mMeshes[i]]->mMaterialIndex]
                 );
         root->addChild(rnode);
     }

@@ -38,6 +38,7 @@ Window {
                 file: "qrc:/model/car.dae"
                 //file: "model/SWIM/Car Swim N220711.3DS"
                 //ignoreLight: true
+                //material: body
             }
         ]
 /*
@@ -68,6 +69,14 @@ Window {
             }
         ]
 //*/
+        glmaterial: [
+            GLPhongMaterial {
+                id: body
+                color: "#990000"
+                specular: "#CCCCCC"
+            }
+        ]
+
         GLAnimateNode {
             //name: "view"
             name: "model"

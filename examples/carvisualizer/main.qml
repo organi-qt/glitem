@@ -3,7 +3,7 @@ import QtQuick.Window 2.1
 import GLItem 1.1
 
 Window {
-    width: 800
+    width: 1280
     height: 480
     color: "black"
     visible: true
