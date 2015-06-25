@@ -5,6 +5,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
 #include <QObject>
 
 class GLShader;
@@ -60,6 +61,9 @@ private:
     QOpenGLBuffer m_vertex_buffer;
     QOpenGLBuffer m_index_buffer;
 
+    bool m_use_vao;
+    QOpenGLVertexArrayObject m_vao;
+
     void saveOpenGLState();
     void switchOpenGlState();
     void restoreOpenGLState();
@@ -67,6 +71,8 @@ private:
     bool initEnvTexture(QOpenGLTexture::CubeMapFace face, QImage &image, QSize &size);
 
     void doRender(bool blendMode);
+
+    void uploadVertexData();
 
     void printOpenGLInfo();
 };

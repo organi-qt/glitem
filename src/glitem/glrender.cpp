@@ -11,7 +11,8 @@ GLRender::GLRender(RenderParam *param)
       m_num_vertex(param->num_vertex),
       m_materials(param->materials),
       m_vertex_buffer(QOpenGLBuffer::VertexBuffer),
-      m_index_buffer(QOpenGLBuffer::IndexBuffer)
+      m_index_buffer(QOpenGLBuffer::IndexBuffer),
+      m_use_vao(false)
 {
     initializeOpenGLFunctions();
     //printOpenGLInfo();
@@ -63,6 +64,18 @@ GLRender::GLRender(RenderParam *param)
     m_index_buffer.bind();
     m_index_buffer.allocate(param->index->data(), param->index->size() * sizeof(ushort));
     m_index_buffer.release();
+
+    QOpenGLContext *context = QOpenGLContext::currentContext();
+    if (context->format().majorVersion() >= 3 ||
+        context->hasExtension("GL_ARB_vertex_array_object") ||
+        context->hasExtension("GL_OES_vertex_array_object")) {
+        qDebug() << "OpenGL render use VAO";
+        m_use_vao = true;
+        m_vao.create();
+        m_vao.bind();
+        uploadVertexData();
+        m_vao.release();
+    }
 
     foreach (Material *material, *param->materials) {
         if (material->init(param->lights, m_state.envmap ? true : false)) {
@@ -217,14 +230,12 @@ void GLRender::render()
     glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    m_vertex_buffer.bind();
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float),
-                          (void *)(3 * sizeof(float)));
-    if (m_has_texture_uv)
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float),
-                              (void *)(m_num_vertex * 6 * sizeof(float)));
-    m_index_buffer.bind();
+    if (m_use_vao) {
+        m_vao.bind();
+        //m_index_buffer.bind();
+    }
+    else
+        uploadVertexData();
 
     doRender(false);    
     doRender(true);
@@ -234,13 +245,32 @@ void GLRender::render()
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
-    m_index_buffer.release();
-    m_vertex_buffer.release();
+
+    if (m_use_vao) {
+        //m_index_buffer.release();
+        m_vao.release();
+    }
+    else {
+        m_index_buffer.release();
+        m_vertex_buffer.release();
+    }
 
     if (m_state.envmap)
         m_state.envmap->release();
 
     restoreOpenGLState();
+}
+
+void GLRender::uploadVertexData()
+{
+    m_vertex_buffer.bind();
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+    if (m_has_texture_uv)
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, 2 * sizeof(float),
+                              (void *)(m_num_vertex * 6 * sizeof(float)));
+    m_index_buffer.bind();
 }
 
 void GLRender::doRender(bool blendMode)
