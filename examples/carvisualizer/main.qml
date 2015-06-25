@@ -27,7 +27,7 @@ Window {
                 name: "Lamp"
                 position: Qt.vector3d(0, 0, 0)
                 diffuse: Qt.vector3d(0.8, 0.8, 0.8)
-                specular: Qt.vector3d(0.8, 0.8, 0.8)
+                specular: Qt.vector3d(0, 0, 0)
                 view: true
             },
             GLDirectionalLight {
