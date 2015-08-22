@@ -203,6 +203,10 @@ void GLAssimpLoadModel::loadMaterial()
         PhongMaterial *pm = new PhongMaterial;
         loadTexture(material, aiTextureType_DIFFUSE, pm);
         loadTexture(material, aiTextureType_SPECULAR, pm);
+        float reflectivity = 0.0f;
+        if (material->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS){
+            pm->setEnvMap(reflectivity);
+        }
 
         aiString name;
         if (material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS)
