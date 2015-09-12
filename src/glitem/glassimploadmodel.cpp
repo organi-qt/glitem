@@ -204,8 +204,17 @@ void GLAssimpLoadModel::loadMaterial()
         loadTexture(material, aiTextureType_DIFFUSE, pm);
         loadTexture(material, aiTextureType_SPECULAR, pm);
         float reflectivity = 0.0f;
-        if (material->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS){
+        aiColor3D cf(0.0f, 0.0f, 0.0f);
+        if (material->Get(AI_MATKEY_COLOR_REFLECTIVE, cf) == aiReturn_SUCCESS &&
+            material->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS && 
+            cf != aiColor3D(0.0f, 0.0f, 0.0f)){
             pm->setEnvMap(reflectivity);
+        }
+
+        float opacity = 1.0f;
+        if (material->Get(AI_MATKEY_OPACITY, opacity) == aiReturn_SUCCESS && opacity<1.0f){
+            pm->setOpacity(1.0f-opacity);
+            pm->setTransparent(true);
         }
 
         aiString name;
