@@ -3,4 +3,9 @@
 Makefile
 *.user
 *.o
-qml
+qml/
+src/glitem/.moc/
+examples/glitem/.rcc/
+examples/glitem/glitem
+examples/carvisualizer/.rcc/
+examples/carvisualizer/carvisualizer

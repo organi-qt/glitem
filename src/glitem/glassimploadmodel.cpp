@@ -61,22 +61,19 @@ bool GLAssimpLoadModel::load()
         return false;
     }
 
-/*
     if (m_scene->HasCameras())
         for (uint i = 0; i < m_scene->mNumCameras; i++)
             printCamera(m_scene->mCameras[i]);
-//*/
-/*
+
     if (m_scene->HasLights())
         for (uint i = 0; i < m_scene->mNumLights; i++)
             printLight(m_scene->mLights[i]);
-//*/
-/*
+
     if (m_scene->HasMaterials())
         for (uint i = 0; i < m_scene->mNumMaterials; i++)
             printMaterial(m_scene->mMaterials[i]);
-//*/
-    //printNode(m_scene->mRootNode, "  ");
+
+    printNode(m_scene->mRootNode, "  ");
 
     m_model_dir.setPath(path);
     m_model_dir.cdUp();
@@ -206,14 +203,14 @@ void GLAssimpLoadModel::loadMaterial()
         float reflectivity = 0.0f;
         aiColor3D cf(0.0f, 0.0f, 0.0f);
         if (material->Get(AI_MATKEY_COLOR_REFLECTIVE, cf) == aiReturn_SUCCESS &&
-            material->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS && 
-            cf != aiColor3D(0.0f, 0.0f, 0.0f)){
+            material->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS &&
+            cf != aiColor3D(0.0f, 0.0f, 0.0f)) {
             pm->setEnvMap(reflectivity);
         }
 
         float opacity = 1.0f;
-        if (material->Get(AI_MATKEY_OPACITY, opacity) == aiReturn_SUCCESS && opacity<1.0f){
-            pm->setOpacity(1.0f-opacity);
+        if (material->Get(AI_MATKEY_OPACITY, opacity) == aiReturn_SUCCESS && opacity < 1.0f) {
+            pm->setOpacity(opacity);
             pm->setTransparent(true);
         }
 
@@ -410,6 +407,13 @@ QString GLAssimpLoadModel::printVector(aiColor4D &c)
 
 void GLAssimpLoadModel::printMaterial(aiMaterial *material)
 {
+    qDebug() << "Material:";
+
+    aiString name;
+    if (AI_SUCCESS == material->Get(AI_MATKEY_NAME, name)) {
+        qDebug() << "name: " << name.C_Str();
+    }
+
     int shadingModel;
     material->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
     switch (shadingModel) {
@@ -451,7 +455,9 @@ void GLAssimpLoadModel::printMaterial(aiMaterial *material)
     aiColor3D dif(0.f,0.f,0.f);
     aiColor3D amb(0.f,0.f,0.f);
     aiColor3D spec(0.f,0.f,0.f);
+    aiColor3D emiss(0.f,0.f,0.f);
     float shine = 0.0;
+    float opacity = 0.0;
     ret = material->Get(AI_MATKEY_COLOR_AMBIENT, amb);
     if (ret == aiReturn_SUCCESS)
         qDebug() << "amb: " << printVector(amb);
@@ -461,9 +467,15 @@ void GLAssimpLoadModel::printMaterial(aiMaterial *material)
     ret = material->Get(AI_MATKEY_COLOR_SPECULAR, spec);
     if (ret == aiReturn_SUCCESS)
         qDebug() << "spec: " << printVector(spec);
+    ret = material->Get(AI_MATKEY_COLOR_EMISSIVE, emiss);
+    if (ret == aiReturn_SUCCESS)
+        qDebug() << "emiss: " << printVector(emiss);
     ret = material->Get(AI_MATKEY_SHININESS, shine);
     if (ret == aiReturn_SUCCESS)
         qDebug() << "shine: " << shine;
+    ret = material->Get(AI_MATKEY_OPACITY, opacity);
+    if (ret == aiReturn_SUCCESS)
+        qDebug() << "opacity: " << opacity;
 }
 
 void GLAssimpLoadModel::printNode(aiNode *node, QString tab)
